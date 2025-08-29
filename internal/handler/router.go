@@ -64,6 +64,7 @@ func setupRoutes(r *gin.Engine) {
 		protected.Use(middleware.JWTMiddleware())
 		{
 			protected.POST("/generate", GenerateDesign)
+			protected.GET("/my-designs", GetUserDesigns)
 		}
 	}
 }

@@ -68,6 +68,11 @@ class AITshirtShop {
         if (navItem) {
             navItem.classList.add('active');
         }
+
+        // 如果是画廊页面，加载用户设计作品
+        if (sectionId === 'gallerySection') {
+            this.loadGallery();
+        }
     }
 
     checkAuthState() {
@@ -238,22 +243,37 @@ class AITshirtShop {
     }
 
     async loadGallery() {
-        if (!this.token) return;
+        const galleryGrid = document.getElementById('galleryGrid');
+        
+        if (!this.token) {
+            // 未登录状态显示提示信息
+            galleryGrid.innerHTML = `
+                <div class="gallery-placeholder">
+                    <i class="fas fa-user-lock"></i>
+                    <p>登录后查看你的设计作品</p>
+                </div>
+            `;
+            return;
+        }
         
         try {
-            // 这里可以添加加载用户设计作品的逻辑
-            // const designs = await this.apiRequest('/designs/my-designs', 'GET');
-            // this.renderGallery(designs);
-            
+            const response = await this.apiRequest('/designs/my-designs', 'GET');
+            this.renderGallery(response.designs);
         } catch (error) {
             console.error('加载画廊失败:', error);
+            galleryGrid.innerHTML = `
+                <div class="gallery-placeholder">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>加载失败: ${error.message}</p>
+                </div>
+            `;
         }
     }
 
     renderGallery(designs) {
         const galleryGrid = document.getElementById('galleryGrid');
         
-        if (designs.length === 0) {
+        if (!designs || designs.length === 0) {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
                     <i class="fas fa-paint-brush"></i>
@@ -267,7 +287,7 @@ class AITshirtShop {
             <div class="gallery-item">
                 <img src="${design.image_url}" alt="T恤设计">
                 <div class="gallery-item-content">
-                    <p>${design.created_at}</p>
+                    <p>${design.created_at || '刚刚创建'}</p>
                 </div>
             </div>
         `).join('');

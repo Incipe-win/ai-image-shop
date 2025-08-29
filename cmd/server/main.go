@@ -45,9 +45,9 @@ func main() {
 	}()
 
 	// Try to auto migrate with the current connection
-	err = db.AutoMigrate(&model.User{})
+	err = db.AutoMigrate(&model.User{}, &model.Design{})
 	if err != nil {
-		logger.Error("Failed to auto migrate user table", err)
+		logger.Error("Failed to auto migrate tables", err)
 		logger.Fatal("Please ensure PostgreSQL is running and execute the following SQL commands manually:\n\n"+
 			"CREATE USER tshirt WITH PASSWORD 'tshirt';\n"+
 			"CREATE DATABASE tshirt_db;\n"+
@@ -56,8 +56,11 @@ func main() {
 			"GRANT ALL PRIVILEGES ON SCHEMA public TO tshirt;\n"+
 			"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tshirt;")
 	} else {
-		logger.Info("User table migrated successfully")
+		logger.Info("Database tables migrated successfully")
 	}
+
+	// Initialize design repository after database is ready
+	handler.InitDesignRepository(db)
 
 	r := handler.InitRouter()
 

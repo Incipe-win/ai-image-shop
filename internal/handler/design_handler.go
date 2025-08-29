@@ -6,13 +6,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Incipe-win/ai-tshirt-shop/internal/model"
+	"github.com/Incipe-win/ai-tshirt-shop/internal/repository"
 	"github.com/Incipe-win/ai-tshirt-shop/internal/service"
 	"github.com/Incipe-win/ai-tshirt-shop/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-var aiService *service.AIService
+var (
+	aiService        *service.AIService
+	designRepository *repository.DesignRepository
+)
 
 func init() {
 	aiService = service.NewAIService()
@@ -20,6 +26,10 @@ func init() {
 	if err := os.MkdirAll("./static/images", 0755); err != nil {
 		logger.Error("Failed to create static images directory", err)
 	}
+}
+
+func InitDesignRepository(db *gorm.DB) {
+	designRepository = repository.NewDesignRepository(db)
 }
 
 func GenerateDesign(c *gin.Context) {
@@ -83,10 +93,59 @@ func GenerateDesign(c *gin.Context) {
 
 	imageURL := fmt.Sprintf("/images/%s", filename)
 
-	logger.Info("Design generated successfully", "userID", userID, "imageURL", imageURL)
+	// 保存设计信息到数据库
+	design := &model.Design{
+		UserID:   userID,
+		Prompt:   req.Prompt,
+		ImageURL: imageURL,
+		Style:    "", // 可以根据需要从请求中获取风格信息
+	}
+	
+	if err := designRepository.Create(design); err != nil {
+		logger.Error("Failed to save design to database", err)
+		// 不返回错误，因为图片生成已经成功
+	}
+	
+	logger.Info("Design generated successfully", "userID", userID, "imageURL", imageURL, "designID", design.ID)
 
 	c.JSON(http.StatusOK, service.AIGenerateResponse{
 		ImageURL: imageURL,
 		Message:  "Design generated successfully",
+	})
+}
+
+func GetUserDesigns(c *gin.Context) {
+	userIDInterface, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User ID not found in context",
+		})
+		return
+	}
+
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid user ID format",
+		})
+		return
+	}
+
+	logger.Info("Fetching designs for user", "userID", userID)
+
+	// 从数据库获取用户的设计作品
+	designs, err := designRepository.FindByUserID(userID)
+	if err != nil {
+		logger.Error("Failed to fetch designs from database", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch designs",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"designs": designs,
+		"message": "Successfully fetched user designs",
 	})
 }
