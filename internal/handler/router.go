@@ -9,9 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouter() *gin.Engine {
-	// gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+func InitRouter(env string) *gin.Engine {
+	if env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(gin.DebugMode)
+	}
 	r := gin.New()
 
 	r.Use(gin.Recovery())

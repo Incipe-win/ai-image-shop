@@ -30,7 +30,12 @@ func initConfig() {
 func main() {
 	initConfig()
 	
-	logger.Init()
+	env := viper.GetString("server.env")
+	if env == "" {
+		env = "development"
+	}
+	
+	logger.Init(env)
 	defer logger.Sync()
 
 	db, err := repository.InitDatabase()
@@ -62,7 +67,7 @@ func main() {
 	// Initialize design repository after database is ready
 	handler.InitDesignRepository(db)
 
-	r := handler.InitRouter()
+	r := handler.InitRouter(env)
 
 	port := viper.GetString("server.port")
 	if port == "" {

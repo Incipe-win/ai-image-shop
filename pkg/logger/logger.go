@@ -7,10 +7,20 @@ import (
 
 var log *zap.Logger
 
-func Init() {
+func Init(env string) {
 	var err error
-	// config := zap.NewProductionConfig()
-	config := zap.NewDevelopmentConfig()
+	var config zap.Config
+
+	if env == "production" {
+		config = zap.NewProductionConfig()
+		config.Development = false
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	} else {
+		config = zap.NewDevelopmentConfig()
+		config.Development = true
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	}
+
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
