@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI T恤设计工坊 - 智能创意T恤定制</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-tshirt"></i>
+                <span>AI T恤设计工坊</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <div class="nav-item" id="navHome">
+                    <i class="fas fa-home"></i>
+                    <span>首页</span>
+                </div>
+                <div class="nav-item" id="navDesign">
+                    <i class="fas fa-magic"></i>
+                    <span>设计T恤</span>
+                </div>
+                <div class="nav-item" id="navGallery">
+                    <i class="fas fa-images"></i>
+                    <span>作品画廊</span>
+                </div>
+                <div class="nav-auth" id="navAuth">
+                    <button class="btn btn-outline" id="btnLogin">登录</button>
+                    <button class="btn btn-primary" id="btnRegister">注册</button>
+                </div>
+                <div class="nav-user" id="navUser" style="display: none;">
+                    <span id="userWelcome"></span>
+                    <button class="btn btn-outline" id="btnLogout">退出</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <!-- 首页 -->
+        <section id="homeSection" class="section active">
+            <div class="hero">
+                <div class="hero-content">
+                    <h1>用AI创造独特的T恤设计</h1>
+                    <p>只需描述你的想法，AI将为你生成独一无二的T恤图案</p>
+                    <button class="btn btn-primary btn-large" id="startDesignBtn">开始设计</button>
+                </div>
+                <div class="hero-image">
+                    <div class="tshirt-showcase">
+                        <div class="tshirt">
+                            <div class="design-preview" id="designPreview"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features">
+                <div class="feature">
+                    <i class="fas fa-brain"></i>
+                    <h3>智能AI生成</h3>
+                    <p>基于先进的AI技术，将你的创意转化为精美设计</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-bolt"></i>
+                    <h3>快速生成</h3>
+                    <p>只需几秒钟，即可获得高质量的T恤设计方案</p>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-palette"></i>
+                    <h3>无限创意</h3>
+                    <p>支持各种风格和主题，满足你的所有创意需求</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 设计界面 -->
+        <section id="designSection" class="section">
+            <div class="design-container">
+                <h2>创建你的T恤设计</h2>
+                <div class="design-wrapper">
+                    <div class="design-sidebar">
+                        <div class="prompt-input">
+                            <label for="promptInput">描述你的设计想法：</label>
+                            <textarea 
+                                id="promptInput" 
+                                placeholder="例如：一只可爱的卡通猫在星空下玩耍，赛博朋克风格，霓虹灯效果..."
+                                rows="4"
+                            ></textarea>
+                            <button class="btn btn-primary" id="generateBtn">生成设计</button>
+                        </div>
+                        
+                        <div class="design-options">
+                            <h4>设计选项</h4>
+                            <div class="option-group">
+                                <label>风格：</label>
+                                <select id="styleSelect">
+                                    <option value="">默认风格</option>
+                                    <option value="cartoon">卡通</option>
+                                    <option value="realistic">写实</option>
+                                    <option value="abstract">抽象</option>
+                                    <option value="cyberpunk">赛博朋克</option>
+                                    <option value="minimalist">极简</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="design-preview-area">
+                        <div class="preview-container">
+                            <div class="tshirt-preview">
+                                <div class="design-result" id="designResult">
+                                    <div class="placeholder" id="designPlaceholder">
+                                        <i class="fas fa-image"></i>
+                                        <p>设计将在这里显示</p>
+                                    </div>
+                                    <img id="generatedImage" style="display: none;">
+                                </div>
+                            </div>
+                            <div class="preview-controls">
+                                <button class="btn btn-outline" id="downloadBtn" disabled>
+                                    <i class="fas fa-download"></i>下载设计
+                                </button>
+                                <button class="btn btn-primary" id="saveDesignBtn" disabled>
+                                    <i class="fas fa-save"></i>保存设计
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 画廊界面 -->
+        <section id="gallerySection" class="section">
+            <div class="gallery-container">
+                <h2>作品画廊</h2>
+                <div class="gallery-grid" id="galleryGrid">
+                    <div class="gallery-placeholder">
+                        <i class="fas fa-images"></i>
+                        <p>登录后查看你的设计作品</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 模态框 -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">登录</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="authForm">
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="form-group" id="emailGroup" style="display: none;">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">提交</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <p id="authSwitch">
+                    没有账号？ <a href="#" id="switchToRegister">立即注册</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div class="loading" id="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>AI正在创作中...</p>
+    </div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

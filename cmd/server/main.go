@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Incipe-win/ai-tshirt-shop/internal/handler"
+	"github.com/Incipe-win/ai-tshirt-shop/internal/model"
 	"github.com/Incipe-win/ai-tshirt-shop/internal/repository"
 	"github.com/Incipe-win/ai-tshirt-shop/pkg/logger"
 	"github.com/spf13/viper"
@@ -42,6 +43,21 @@ func main() {
 			sqlDB.Close()
 		}
 	}()
+
+	// Try to auto migrate with the current connection
+	err = db.AutoMigrate(&model.User{})
+	if err != nil {
+		logger.Error("Failed to auto migrate user table", err)
+		logger.Fatal("Please ensure PostgreSQL is running and execute the following SQL commands manually:\n\n"+
+			"CREATE USER tshirt WITH PASSWORD 'tshirt';\n"+
+			"CREATE DATABASE tshirt_db;\n"+
+			"GRANT ALL PRIVILEGES ON DATABASE tshirt_db TO tshirt;\n"+
+			"\\c tshirt_db\n"+
+			"GRANT ALL PRIVILEGES ON SCHEMA public TO tshirt;\n"+
+			"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO tshirt;")
+	} else {
+		logger.Info("User table migrated successfully")
+	}
 
 	r := handler.InitRouter()
 
