@@ -1,0 +1,8 @@
+server:
+  port: ":8888"
+database:
+  dsn: "host=localhost user=tshirt password=tshirt dbname=tshirt_db port=5432 sslmode=disable"
+jwt:
+  secret: "tshirt_secret_key"
+ai:
+  api_key: "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
