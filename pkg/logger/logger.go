@@ -9,7 +9,8 @@ var log *zap.Logger
 
 func Init() {
 	var err error
-	config := zap.NewProductionConfig()
+	// config := zap.NewProductionConfig()
+	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 

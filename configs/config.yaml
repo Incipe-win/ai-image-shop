@@ -5,4 +5,4 @@ database:
 jwt:
   secret: "tshirt_secret_key"
 ai:
-  api_key: "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  api_key: "2d115eac-3988-47f2-92ac-4f5ac4703a2c"
