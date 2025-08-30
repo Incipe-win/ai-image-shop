@@ -74,6 +74,32 @@ definitions:
       username:
         type: string
     type: object
+  model.OrderStatus:
+    enum:
+    - pending
+    - paid
+    - shipped
+    - completed
+    - cancelled
+    type: string
+    x-enum-comments:
+      OrderStatusCancelled: 已取消
+      OrderStatusCompleted: 已完成
+      OrderStatusPaid: 已支付
+      OrderStatusPending: 待支付
+      OrderStatusShipped: 已发货
+    x-enum-descriptions:
+    - 待支付
+    - 已支付
+    - 已发货
+    - 已完成
+    - 已取消
+    x-enum-varnames:
+    - OrderStatusPending
+    - OrderStatusPaid
+    - OrderStatusShipped
+    - OrderStatusCompleted
+    - OrderStatusCancelled
   service.AIGenerateRequest:
     properties:
       prompt:
@@ -87,6 +113,152 @@ definitions:
         type: string
       message:
         type: string
+    type: object
+  service.AddToCartRequest:
+    properties:
+      color:
+        type: string
+      design_id:
+        type: integer
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      size:
+        type: string
+    required:
+    - color
+    - design_id
+    - product_id
+    - quantity
+    - size
+    type: object
+  service.CartDesignResponse:
+    properties:
+      id:
+        type: integer
+      image_url:
+        type: string
+      prompt:
+        type: string
+      style:
+        type: string
+    type: object
+  service.CartItemResponse:
+    properties:
+      color:
+        type: string
+      design:
+        $ref: '#/definitions/service.CartDesignResponse'
+      id:
+        type: integer
+      product:
+        $ref: '#/definitions/service.ProductResponse'
+      quantity:
+        type: integer
+      size:
+        type: string
+    type: object
+  service.CartResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/service.CartItemResponse'
+        type: array
+      total_items:
+        type: integer
+      total_value:
+        type: number
+    type: object
+  service.CreateOrderRequest:
+    properties:
+      cart_item_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - cart_item_ids
+    type: object
+  service.CreateProductRequest:
+    properties:
+      base_price:
+        type: number
+      brand:
+        type: string
+      category:
+        type: string
+      description:
+        type: string
+      material:
+        type: string
+      name:
+        type: string
+    required:
+    - base_price
+    - name
+    type: object
+  service.OrderItemResponse:
+    properties:
+      color:
+        type: string
+      design_image_url:
+        type: string
+      id:
+        type: integer
+      price:
+        type: number
+      product_name:
+        type: string
+      quantity:
+        type: integer
+      size:
+        type: string
+    type: object
+  service.OrderResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      order_items:
+        items:
+          $ref: '#/definitions/service.OrderItemResponse'
+        type: array
+      order_sn:
+        type: string
+      status:
+        $ref: '#/definitions/model.OrderStatus'
+      total_amount:
+        type: number
+    type: object
+  service.ProductResponse:
+    properties:
+      base_price:
+        type: number
+      brand:
+        type: string
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      material:
+        type: string
+      name:
+        type: string
+    type: object
+  service.UpdateCartRequest:
+    properties:
+      quantity:
+        type: integer
+    required:
+    - quantity
     type: object
 host: localhost:8080
 info:
@@ -213,6 +385,189 @@ paths:
       summary: 用户注册
       tags:
       - auth
+  /cart:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户的购物车内容
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 购物车内容
+          schema:
+            $ref: '#/definitions/service.CartResponse'
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取购物车
+      tags:
+      - cart
+  /cart/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 从购物车中删除指定的商品
+      parameters:
+      - description: 购物车商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 从购物车删除商品
+      tags:
+      - cart
+    put:
+      consumes:
+      - application/json
+      description: 更新购物车中指定商品的数量
+      parameters:
+      - description: 购物车商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新购物车请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 购物车商品不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 更新购物车商品数量
+      tags:
+      - cart
+  /cart/add:
+    post:
+      consumes:
+      - application/json
+      description: 将指定的商品和设计组合添加到用户购物车
+      parameters:
+      - description: 添加到购物车请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.AddToCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 添加成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 添加商品到购物车
+      tags:
+      - cart
+  /cart/clear:
+    delete:
+      consumes:
+      - application/json
+      description: 清空当前用户的整个购物车
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 清空成功
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 清空购物车
+      tags:
+      - cart
   /designs/generate:
     post:
       consumes:
@@ -296,6 +651,327 @@ paths:
       summary: 健康检查
       tags:
       - health
+  /orders:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户的所有订单
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 订单列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户订单列表
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: 从购物车创建订单，将购物车中的商品转换为订单
+      parameters:
+      - description: 创建订单请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 订单创建成功
+          schema:
+            $ref: '#/definitions/service.OrderResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 创建订单
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据订单ID获取订单详细信息
+      parameters:
+      - description: 订单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 订单详情
+          schema:
+            $ref: '#/definitions/service.OrderResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 订单不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 根据ID获取订单
+      tags:
+      - orders
+  /orders/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: 更新订单状态（支付、发货、完成等）
+      parameters:
+      - description: 订单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态更新请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 状态更新成功
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 订单不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 更新订单状态
+      tags:
+      - orders
+  /orders/sn/{order_sn}:
+    get:
+      consumes:
+      - application/json
+      description: 根据订单号获取订单详细信息
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_sn
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 订单详情
+          schema:
+            $ref: '#/definitions/service.OrderResponse'
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 订单不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 根据订单号获取订单
+      tags:
+      - orders
+  /products:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有可用的T恤商品模板
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 商品列表
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取所有商品
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: 创建新的T恤商品模板
+      parameters:
+      - description: 创建商品请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 商品创建成功
+          schema:
+            $ref: '#/definitions/service.ProductResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 创建商品
+      tags:
+      - products
+  /products/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据商品ID获取特定的T恤商品模板信息
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 商品信息
+          schema:
+            $ref: '#/definitions/service.ProductResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 商品不存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 根据ID获取商品
+      tags:
+      - products
+  /products/category:
+    get:
+      consumes:
+      - application/json
+      description: 根据商品分类获取T恤商品列表
+      parameters:
+      - description: 商品分类
+        in: query
+        name: category
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 商品列表
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 根据分类获取商品
+      tags:
+      - products
   /tshirts:
     get:
       consumes:

@@ -13,8 +13,8 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <i class="fas fa-tshirt"></i>
-                <span>AI 创意设计工坊</span>
+                <i class="fas fa-palette"></i>
+                <span class="logo-text">AI 创意设计工坊</span>
             </div>
             <div class="nav-menu" id="navMenu">
                 <div class="nav-item" id="navHome">
@@ -23,11 +23,24 @@
                 </div>
                 <div class="nav-item" id="navDesign">
                     <i class="fas fa-magic"></i>
-                    <span>设计作品</span>
+                    <span>创意设计</span>
                 </div>
                 <div class="nav-item" id="navGallery">
                     <i class="fas fa-images"></i>
                     <span>作品画廊</span>
+                </div>
+                <div class="nav-item" id="navShop">
+                    <i class="fas fa-store"></i>
+                    <span>创意商店</span>
+                </div>
+                <div class="nav-item" id="navCart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>购物车</span>
+                    <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
+                </div>
+                <div class="nav-item" id="navOrders">
+                    <i class="fas fa-receipt"></i>
+                    <span>我的订单</span>
                 </div>
                 <div class="nav-auth" id="navAuth">
                     <button class="btn btn-outline" id="btnLogin">登录</button>
@@ -47,13 +60,13 @@
         <section id="homeSection" class="section active">
             <div class="hero">
                 <div class="hero-content">
-                    <h1>用AI创造独特的设计作品</h1>
-                    <p>只需描述你的想法，AI将为你生成独一无二的创意设计</p>
-                    <button class="btn btn-primary btn-large" id="startDesignBtn">开始设计</button>
+                    <h1>用AI创造无限创意可能</h1>
+                    <p>只需描述你的想法，AI将为你生成独一无二的创意作品，适用于各种应用场景</p>
+                    <button class="btn btn-primary btn-large" id="startDesignBtn">开始创作</button>
                 </div>
                 <div class="hero-image">
-                    <div class="tshirt-showcase">
-                        <div class="tshirt">
+                    <div class="artwork-showcase">
+                        <div class="artwork-frame">
                             <div class="design-preview" id="designPreview"></div>
                         </div>
                     </div>
@@ -64,17 +77,17 @@
                 <div class="feature">
                     <i class="fas fa-brain"></i>
                     <h3>智能AI生成</h3>
-                    <p>基于先进的AI技术，将你的创意转化为精美设计</p>
+                    <p>基于先进的AI技术，将你的创意想法转化为精美的视觉作品</p>
                 </div>
                 <div class="feature">
                     <i class="fas fa-bolt"></i>
-                    <h3>快速生成</h3>
-                    <p>只需几秒钟，即可获得高质量的设计方案</p>
+                    <h3>快速创作</h3>
+                    <p>只需几秒钟，即可获得高质量的创意设计作品</p>
                 </div>
                 <div class="feature">
                     <i class="fas fa-palette"></i>
-                    <h3>无限创意</h3>
-                    <p>支持各种风格和主题，满足你的所有创意需求</p>
+                    <h3>多样应用</h3>
+                    <p>支持各种风格和主题，可用于海报、插画、logo等多种场景</p>
                 </div>
             </div>
         </section>
@@ -82,30 +95,41 @@
         <!-- 设计界面 -->
         <section id="designSection" class="section">
             <div class="design-container">
-                <h2>创建你的设计作品</h2>
+                <h2>创建你的创意作品</h2>
                 <div class="design-wrapper">
                     <div class="design-sidebar">
                         <div class="prompt-input">
-                            <label for="promptInput">描述你的设计想法：</label>
+                            <label for="promptInput">描述你的创意想法：</label>
                             <textarea 
                                 id="promptInput" 
-                                placeholder="例如：一个抽象的未来城市景观，极简主义风格，蓝色调..."
+                                placeholder="例如：一个神秘的森林精灵，水彩画风格，梦幻色彩..."
                                 rows="4"
                             ></textarea>
-                            <button class="btn btn-primary" id="generateBtn">生成设计</button>
+                            <button class="btn btn-primary" id="generateBtn">生成创意</button>
                         </div>
                         
                         <div class="design-options">
-                            <h4>设计选项</h4>
+                            <h4>创意选项</h4>
                             <div class="option-group">
-                                <label>风格：</label>
+                                <label>作品分类：</label>
+                                <select id="categorySelect">
+                                    <option value="">选择分类</option>
+                                    <option value="poster">海报印刷</option>
+                                    <option value="sticker">贴纸定制</option>
+                                    <option value="canvas">画布装饰</option>
+                                    <option value="tshirt">T恤图案</option>
+                                </select>
+                            </div>
+                            <div class="option-group">
+                                <label>艺术风格：</label>
                                 <select id="styleSelect">
                                     <option value="">默认风格</option>
-                                    <option value="cartoon">卡通</option>
-                                    <option value="realistic">写实</option>
-                                    <option value="abstract">抽象</option>
+                                    <option value="cartoon">卡通插画</option>
+                                    <option value="realistic">写实摄影</option>
+                                    <option value="abstract">抽象艺术</option>
+                                    <option value="watercolor">水彩画</option>
+                                    <option value="minimalist">极简设计</option>
                                     <option value="cyberpunk">赛博朋克</option>
-                                    <option value="minimalist">极简</option>
                                 </select>
                             </div>
                         </div>
@@ -113,21 +137,24 @@
 
                     <div class="design-preview-area">
                         <div class="preview-container">
-                            <div class="tshirt-preview">
+                            <div class="artwork-preview">
                                 <div class="design-result" id="designResult">
                                     <div class="placeholder" id="designPlaceholder">
                                         <i class="fas fa-image"></i>
-                                        <p>设计将在这里显示</p>
+                                        <p>创意作品将在这里显示</p>
                                     </div>
                                     <img id="generatedImage" style="display: none;">
                                 </div>
                             </div>
                             <div class="preview-controls">
                                 <button class="btn btn-outline" id="downloadBtn" disabled>
-                                    <i class="fas fa-download"></i>下载设计
+                                    <i class="fas fa-download"></i>下载作品
                                 </button>
                                 <button class="btn btn-primary" id="saveDesignBtn" disabled>
-                                    <i class="fas fa-save"></i>保存设计
+                                    <i class="fas fa-save"></i>保存作品
+                                </button>
+                                <button class="btn btn-success" id="publishToShopBtn" disabled>
+                                    <i class="fas fa-store"></i>发布到商店
                                 </button>
                             </div>
                         </div>
@@ -139,16 +166,166 @@
         <!-- 画廊界面 -->
         <section id="gallerySection" class="section">
             <div class="gallery-container">
-                <h2>作品画廊</h2>
+                <h2>创意画廊</h2>
+                <div class="gallery-filters">
+                    <div class="filter-group">
+                        <label>分类筛选：</label>
+                        <select id="galleryFilter">
+                            <option value="">全部作品</option>
+                            <option value="poster">海报印刷</option>
+                            <option value="sticker">贴纸定制</option>
+                            <option value="canvas">画布装饰</option>
+                            <option value="tshirt">T恤图案</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline" id="applyGalleryFilters">应用筛选</button>
+                </div>
                 <div class="gallery-grid" id="galleryGrid">
                     <div class="gallery-placeholder">
                         <i class="fas fa-images"></i>
-                        <p>登录后查看你的设计作品</p>
+                        <p>登录后查看你的创意作品</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 商店界面 -->
+        <section id="shopSection" class="section">
+            <div class="shop-container">
+                <h2>创意商店</h2>
+                <div class="shop-filters">
+                    <div class="filter-group">
+                        <label>分类：</label>
+                        <select id="categoryFilter">
+                            <option value="">全部</option>
+                            <option value="poster">海报印刷</option>
+                            <option value="sticker">贴纸定制</option>
+                            <option value="canvas">画布装饰</option>
+                            <option value="tshirt">T恤图案</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline" id="applyFilters">应用筛选</button>
+                </div>
+                <div class="products-grid" id="productsGrid">
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>正在加载商品...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 购物车界面 -->
+        <section id="cartSection" class="section">
+            <div class="cart-container">
+                <h2>购物车</h2>
+                <div class="cart-content" id="cartContent">
+                    <div class="cart-empty">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h3>购物车是空的</h3>
+                        <p>快去商店挑选喜欢的商品吧！</p>
+                        <button class="btn btn-primary" onclick="app.showSection('shopSection')">去购物</button>
+                    </div>
+                </div>
+                <div class="cart-summary" id="cartSummary" style="display: none;">
+                    <div class="summary-row">
+                        <span>商品总数：</span>
+                        <span id="cartTotalItems">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>总计金额：</span>
+                        <span id="cartTotalAmount">¥0.00</span>
+                    </div>
+                    <button class="btn btn-primary btn-large" id="checkoutBtn">结算</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 订单界面 -->
+        <section id="ordersSection" class="section">
+            <div class="orders-container">
+                <h2>我的订单</h2>
+                <div class="orders-list" id="ordersList">
+                    <div class="orders-empty">
+                        <i class="fas fa-receipt"></i>
+                        <h3>暂无订单</h3>
+                        <p>您还没有任何订单记录</p>
+                        <button class="btn btn-primary" onclick="app.showSection('shopSection')">去购物</button>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- 添加到购物车模态框 -->
+    <div class="modal" id="addToCartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加到购物车</h3>
+                <button class="modal-close" onclick="app.hideAddToCartModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-info" id="cartProductInfo">
+                    <img id="cartProductImage" src="" alt="商品图片">
+                    <div class="product-details">
+                        <h4 id="cartProductName"></h4>
+                        <p class="price" id="cartProductPrice"></p>
+                    </div>
+                </div>
+                <form id="addToCartForm">
+                    <div class="form-group">
+                        <label for="sizeSelect">尺码：</label>
+                        <select id="sizeSelect" required>
+                            <option value="">选择尺码</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XXL">XXL</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="colorSelect">颜色：</label>
+                        <select id="colorSelect" required>
+                            <option value="">选择颜色</option>
+                            <option value="白色">白色</option>
+                            <option value="黑色">黑色</option>
+                            <option value="灰色">灰色</option>
+                            <option value="蓝色">蓝色</option>
+                            <option value="红色">红色</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantityInput">数量：</label>
+                        <input type="number" id="quantityInput" min="1" max="10" value="1" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">添加到购物车</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结算模态框 -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>确认订单</h3>
+                <button class="modal-close" onclick="app.hideCheckoutModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="order-summary" id="orderSummary">
+                    <!-- 订单商品列表 -->
+                </div>
+                <div class="order-total">
+                    <div class="total-row">
+                        <span>订单总额：</span>
+                        <span id="orderTotalAmount">¥0.00</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" id="confirmOrderBtn">确认下单</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 模态框 -->
     <div class="modal" id="authModal">
@@ -186,6 +363,33 @@
     <div class="loading" id="loading" style="display: none;">
         <div class="loading-spinner"></div>
         <p>AI正在创作中...</p>
+    </div>
+
+    <!-- 发布到商店模态框 -->
+    <div class="modal" id="publishModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>发布到创意商店</h3>
+                <button class="modal-close" onclick="app.hidePublishModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="publishForm">
+                    <div class="form-group">
+                        <label for="productName">商品名称</label>
+                        <input type="text" id="productName" required placeholder="例如：梦幻森林创意设计">
+                    </div>
+                    <div class="form-group">
+                        <label for="productDescription">商品描述</label>
+                        <textarea id="productDescription" rows="3" placeholder="描述这个创意作品的特色和用途..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">售价（元）</label>
+                        <input type="number" id="productPrice" required min="0.01" step="0.01" placeholder="29.99">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-full">发布到商店</button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- 通知 -->

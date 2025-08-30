@@ -1,9 +1,14 @@
-class AITshirtShop {
+class AICreativeStudio {
     constructor() {
         this.baseURL = '/api/v1';
         this.token = localStorage.getItem('authToken');
         this.refreshToken = localStorage.getItem('refreshToken');
         this.currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        
+        // 电商相关属性
+        this.cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+        this.currentProduct = null;
+        this.selectedCartItems = [];
         
         this.init();
     }
@@ -19,6 +24,9 @@ class AITshirtShop {
         document.getElementById('navHome').addEventListener('click', () => this.showSection('homeSection'));
         document.getElementById('navDesign').addEventListener('click', () => this.showSection('designSection'));
         document.getElementById('navGallery').addEventListener('click', () => this.showSection('gallerySection'));
+        document.getElementById('navShop').addEventListener('click', () => this.showSection('shopSection'));
+        document.getElementById('navCart').addEventListener('click', () => this.showSection('cartSection'));
+        document.getElementById('navOrders').addEventListener('click', () => this.showSection('ordersSection'));
         
         // 认证按钮
         document.getElementById('btnLogin').addEventListener('click', () => this.showAuthModal('login'));
@@ -34,6 +42,15 @@ class AITshirtShop {
         // 下载和保存按钮
         document.getElementById('downloadBtn').addEventListener('click', () => this.downloadDesign());
         document.getElementById('saveDesignBtn').addEventListener('click', () => this.saveDesign());
+        document.getElementById('publishToShopBtn').addEventListener('click', () => this.showPublishModal());
+
+        // 电商功能事件绑定
+        document.getElementById('applyFilters').addEventListener('click', () => this.loadProducts());
+        document.getElementById('applyGalleryFilters').addEventListener('click', () => this.loadGallery());
+        document.getElementById('addToCartForm').addEventListener('submit', (e) => this.handleAddToCart(e));
+        document.getElementById('publishForm').addEventListener('submit', (e) => this.handlePublishToShop(e));
+        document.getElementById('checkoutBtn').addEventListener('click', () => this.showCheckoutModal());
+        document.getElementById('confirmOrderBtn').addEventListener('click', () => this.createOrder());
         
         // 模态框事件
         document.getElementById('modalClose').addEventListener('click', () => this.hideAuthModal());
@@ -70,9 +87,15 @@ class AITshirtShop {
             navItem.classList.add('active');
         }
 
-        // 如果是画廊页面，加载用户设计作品
+        // 页面特定加载逻辑
         if (sectionId === 'gallerySection') {
             this.loadGallery();
+        } else if (sectionId === 'shopSection') {
+            this.loadProducts();
+        } else if (sectionId === 'cartSection') {
+            this.loadCart();
+        } else if (sectionId === 'ordersSection') {
+            this.loadOrders();
         }
     }
 
@@ -179,21 +202,31 @@ class AITshirtShop {
 
     async generateDesign() {
         if (!this.token) {
-            this.showNotification('请先登录以生成设计', 'error');
+            this.showNotification('请先登录以生成创意作品', 'error');
             this.showAuthModal('login');
             return;
         }
         
         const prompt = document.getElementById('promptInput').value.trim();
         const style = document.getElementById('styleSelect').value;
+        const category = document.getElementById('categorySelect').value;
         
         if (!prompt) {
-            this.showNotification('请输入设计描述', 'error');
+            this.showNotification('请输入创意描述', 'error');
             return;
         }
         
         // 构建完整的提示词
         let fullPrompt = prompt;
+        if (category) {
+            const categoryMap = {
+                'poster': '海报印刷',
+                'sticker': '贴纸定制',
+                'canvas': '画布装饰',
+                'tshirt': 'T恤图案'
+            };
+            fullPrompt += `，适用于${categoryMap[category] || category}`;
+        }
         if (style) {
             fullPrompt += `, ${style}风格`;
         }
@@ -202,7 +235,9 @@ class AITshirtShop {
         
         try {
             const response = await this.apiRequest('/designs/generate', 'POST', {
-                prompt: fullPrompt
+                prompt: fullPrompt,
+                category: category || 'general',
+                style: style || ''
             });
             
             // 显示生成的图片
@@ -216,9 +251,10 @@ class AITshirtShop {
             // 启用下载和保存按钮
             document.getElementById('downloadBtn').disabled = false;
             document.getElementById('saveDesignBtn').disabled = false;
+            document.getElementById('publishToShopBtn').disabled = false;
             
             this.currentDesign = response;
-            this.showNotification('设计生成成功！', 'success');
+            this.showNotification('创意作品生成成功！', 'success');
             
         } catch (error) {
             this.showNotification(error.message, 'error');
@@ -232,12 +268,12 @@ class AITshirtShop {
         
         const link = document.createElement('a');
         link.href = this.currentDesign.image_url;
-        link.download = `tshirt-design-${Date.now()}.png`;
+        link.download = `creative-artwork-${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        this.showNotification('设计已下载', 'success');
+        this.showNotification('创意作品已下载', 'success');
     }
 
     async saveDesign() {
@@ -247,7 +283,7 @@ class AITshirtShop {
             // 这里可以添加保存设计到用户收藏的逻辑
             // 例如: await this.apiRequest('/designs/save', 'POST', { image_url: this.currentDesign.image_url });
             
-            this.showNotification('设计已保存到收藏', 'success');
+            this.showNotification('创意作品已保存到收藏', 'success');
         } catch (error) {
             this.showNotification('保存失败: ' + error.message, 'error');
         }
@@ -261,14 +297,20 @@ class AITshirtShop {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
                     <i class="fas fa-user-lock"></i>
-                    <p>登录后查看你的设计作品</p>
+                    <p>登录后查看你的创意作品</p>
                 </div>
             `;
             return;
         }
         
         try {
-            const response = await this.apiRequest('/designs/my-designs', 'GET');
+            const category = document.getElementById('galleryFilter')?.value || '';
+            let endpoint = '/designs/my-designs';
+            if (category) {
+                endpoint = `/designs/my-designs?category=${encodeURIComponent(category)}`;
+            }
+            
+            const response = await this.apiRequest(endpoint, 'GET');
             this.renderGallery(response.designs);
         } catch (error) {
             console.error('加载画廊失败:', error);
@@ -288,7 +330,7 @@ class AITshirtShop {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
                     <i class="fas fa-paint-brush"></i>
-                    <p>还没有设计作品，快去创作吧！</p>
+                    <p>还没有创意作品，快去创作吧！</p>
                 </div>
             `;
             return;
@@ -296,12 +338,98 @@ class AITshirtShop {
         
         galleryGrid.innerHTML = designs.map(design => `
             <div class="gallery-item">
-                <img src="${design.image_url}" alt="T恤设计">
+                <img src="${design.image_url}" alt="创意作品">
                 <div class="gallery-item-content">
-                    <p>${design.created_at || '刚刚创建'}</p>
+                    <div class="gallery-item-meta">
+                        <span class="category-tag">${this.getCategoryName(design.category)}</span>
+                        ${design.style ? `<span class="style-tag">${design.style}</span>` : ''}
+                    </div>
+                    <p class="design-prompt">${design.prompt || '创意作品'}</p>
+                    <p class="creation-time">${this.formatDate(design.created_at) || '刚刚创建'}</p>
                 </div>
             </div>
         `).join('');
+    }
+
+    getCategoryName(category) {
+        const categoryMap = {
+            'poster': '海报印刷',
+            'sticker': '贴纸定制', 
+            'canvas': '画布装饰',
+            'tshirt': 'T恤图案'
+        };
+        return categoryMap[category] || '其他分类';
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return '';
+        try {
+            return new Date(dateString).toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch (e) {
+            return '';
+        }
+    }
+
+    showPublishModal() {
+        if (!this.currentDesign) {
+            this.showNotification('请先生成一个设计作品', 'error');
+            return;
+        }
+        
+        document.getElementById('publishModal').style.display = 'flex';
+        document.getElementById('productName').focus();
+    }
+
+    hidePublishModal() {
+        document.getElementById('publishModal').style.display = 'none';
+        document.getElementById('publishForm').reset();
+    }
+
+    async handlePublishToShop(e) {
+        e.preventDefault();
+        
+        if (!this.currentDesign) {
+            this.showNotification('没有可发布的设计作品', 'error');
+            return;
+        }
+
+        const productName = document.getElementById('productName').value.trim();
+        const description = document.getElementById('productDescription').value.trim();
+        const price = parseFloat(document.getElementById('productPrice').value);
+
+        if (!productName) {
+            this.showNotification('请输入商品名称', 'error');
+            return;
+        }
+
+        if (!price || price <= 0) {
+            this.showNotification('请输入有效的价格', 'error');
+            return;
+        }
+
+        try {
+            const response = await this.apiRequest('/designs/publish', 'POST', {
+                design_id: this.currentDesign.id,
+                product_name: productName,
+                description: description,
+                price: price
+            });
+
+            this.showNotification('作品已成功发布到商店！', 'success');
+            this.hidePublishModal();
+            
+            // 可选：跳转到商店页面
+            setTimeout(() => {
+                this.showSection('shopSection');
+            }, 1500);
+
+        } catch (error) {
+            this.showNotification('发布失败: ' + error.message, 'error');
+        }
     }
 
     async apiRequest(endpoint, method = 'GET', data = null, auth = true) {
@@ -401,11 +529,474 @@ class AITshirtShop {
             notification.classList.remove('show');
         }, 3000);
     }
+
+    // ==================== 电商功能方法 ====================
+
+    async loadProducts() {
+        const productsGrid = document.getElementById('productsGrid');
+        const category = document.getElementById('categoryFilter').value;
+        
+        productsGrid.innerHTML = `
+            <div class="loading-placeholder">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>正在加载创意产品...</p>
+            </div>
+        `;
+
+        try {
+            let endpoint = '/products';
+            if (category) {
+                endpoint = `/products/category?category=${encodeURIComponent(category)}`;
+            }
+            
+            const response = await this.apiRequest(endpoint, 'GET', null, false);
+            
+            // 确保返回的是数组格式
+            let products = response.products || response;
+            if (!Array.isArray(products)) {
+                products = [];
+            }
+            
+            this.renderProducts(products);
+        } catch (error) {
+            console.error('加载创意产品失败:', error);
+            productsGrid.innerHTML = `
+                <div class="error-placeholder">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>加载失败: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    renderProducts(products) {
+        const productsGrid = document.getElementById('productsGrid');
+        
+        if (!products || products.length === 0) {
+            productsGrid.innerHTML = `
+                <div class="empty-placeholder">
+                    <i class="fas fa-box-open"></i>
+                    <p>暂无创意产品</p>
+                </div>
+            `;
+            return;
+        }
+
+        productsGrid.innerHTML = products.map(product => `
+            <div class="product-card" data-product-id="${product.id}">
+                <div class="product-image">
+                    ${product.image_url ? 
+                        `<img src="${product.image_url}" alt="${product.name}">` : 
+                        '<i class="fas fa-palette"></i>'
+                    }
+                </div>
+                <div class="product-info">
+                    <h3>${product.name}</h3>
+                    <p class="product-description">${product.description || '优质创意产品'}</p>
+                    
+                    ${product.design_prompt ? `
+                        <div class="design-info">
+                            <p class="design-prompt-preview">"${product.design_prompt}"</p>
+                            ${product.design_style ? `<span class="style-tag">${product.design_style}</span>` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="product-meta">
+                        <span class="product-category">${this.getCategoryName(product.category) || '通用'}</span>
+                        <span class="product-material">${product.material || '纯棉'}</span>
+                    </div>
+                    
+                    ${product.creator_name ? `
+                        <div class="creator-info">
+                            <i class="fas fa-user"></i>
+                            <span>创作者: ${product.creator_name}</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="product-price">¥${product.base_price.toFixed(2)}</div>
+                    <button class="btn btn-primary btn-small" onclick="app.showAddToCartModal(${product.id})">
+                        添加到购物车
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async showAddToCartModal(productId) {
+        if (!this.token) {
+            this.showNotification('请先登录以添加创意产品到购物车', 'error');
+            this.showAuthModal('login');
+            return;
+        }
+
+        try {
+            const response = await this.apiRequest(`/products/${productId}`, 'GET', null, false);
+            this.currentProduct = response.product || response;
+            
+            // 填充模态框信息
+            document.getElementById('cartProductName').textContent = this.currentProduct.name;
+            document.getElementById('cartProductPrice').textContent = `¥${this.currentProduct.base_price.toFixed(2)}`;
+            
+            // 显示模态框
+            document.getElementById('addToCartModal').style.display = 'flex';
+            document.getElementById('sizeSelect').focus();
+            
+        } catch (error) {
+            this.showNotification('加载创意产品信息失败: ' + error.message, 'error');
+        }
+    }
+
+    hideAddToCartModal() {
+        document.getElementById('addToCartModal').style.display = 'none';
+        document.getElementById('addToCartForm').reset();
+        this.currentProduct = null;
+    }
+
+    async handleAddToCart(e) {
+        e.preventDefault();
+        
+        if (!this.currentProduct) return;
+
+        const size = document.getElementById('sizeSelect').value;
+        const color = document.getElementById('colorSelect').value;
+        const quantity = parseInt(document.getElementById('quantityInput').value);
+
+        if (!size || !color) {
+            this.showNotification('请选择尺码和颜色', 'error');
+            return;
+        }
+
+        try {
+            // 获取用户的设计作品用于选择
+            const designsResponse = await this.apiRequest('/designs/my-designs', 'GET');
+            const designs = designsResponse.designs || [];
+
+            if (designs.length === 0) {
+                this.showNotification('请先创建一个设计作品', 'error');
+                this.showSection('designSection');
+                this.hideAddToCartModal();
+                return;
+            }
+
+            // 这里简化处理，使用第一个设计
+            const design = designs[0];
+
+            const cartItem = {
+                product_id: this.currentProduct.id,
+                design_id: design.id,
+                size: size,
+                color: color,
+                quantity: quantity
+            };
+
+            await this.apiRequest('/cart/add', 'POST', cartItem);
+            
+            this.showNotification('创意产品已添加到购物车', 'success');
+            this.hideAddToCartModal();
+            this.updateCartBadge();
+            
+        } catch (error) {
+            this.showNotification('添加到购物车失败: ' + error.message, 'error');
+        }
+    }
+
+    async loadCart() {
+        if (!this.token) {
+            this.showCartLoginPrompt();
+            return;
+        }
+
+        try {
+            const response = await this.apiRequest('/cart', 'GET');
+            this.renderCart(response);
+        } catch (error) {
+            console.error('加载购物车失败:', error);
+            this.showCartError(error.message);
+        }
+    }
+
+    renderCart(cartData) {
+        const cartContent = document.getElementById('cartContent');
+        const cartSummary = document.getElementById('cartSummary');
+        
+        if (!cartData.items || cartData.items.length === 0) {
+            cartContent.innerHTML = `
+                <div class="cart-empty">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>购物车是空的</h3>
+                    <p>快去商店挑选喜欢的商品吧！</p>
+                    <button class="btn btn-primary" onclick="app.showSection('shopSection')">去购物</button>
+                </div>
+            `;
+            cartSummary.style.display = 'none';
+            return;
+        }
+
+        cartContent.innerHTML = cartData.items.map(item => `
+            <div class="cart-item" data-item-id="${item.id}">
+                <div class="cart-item-image">
+                    <img src="${item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="创意设计">
+                </div>
+                <div class="cart-item-details">
+                    <h4>${item.product?.name || '创意产品'}</h4>
+                    <p class="design-prompt">${item.design?.prompt || '自定义创意'}</p>
+                    <div class="item-attributes">
+                        <span class="attribute">尺码: ${item.size}</span>
+                        <span class="attribute">颜色: ${item.color}</span>
+                    </div>
+                    <div class="item-price">¥${(item.product?.base_price * item.quantity).toFixed(2)}</div>
+                </div>
+                <div class="cart-item-controls">
+                    <div class="quantity-controls">
+                        <button class="btn-quantity" onclick="app.updateCartItemQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                        <span class="quantity">${item.quantity}</span>
+                        <button class="btn-quantity" onclick="app.updateCartItemQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                    </div>
+                    <button class="btn-remove" onclick="app.removeFromCart(${item.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // 更新汇总信息
+        document.getElementById('cartTotalItems').textContent = cartData.total_items || 0;
+        document.getElementById('cartTotalAmount').textContent = `¥${(cartData.total_value || 0).toFixed(2)}`;
+        cartSummary.style.display = 'block';
+    }
+
+    async updateCartItemQuantity(itemId, newQuantity) {
+        if (newQuantity < 1) {
+            await this.removeFromCart(itemId);
+            return;
+        }
+
+        try {
+            await this.apiRequest(`/cart/${itemId}`, 'PUT', { quantity: newQuantity });
+            this.loadCart(); // 重新加载购物车
+            this.updateCartBadge();
+        } catch (error) {
+            this.showNotification('更新数量失败: ' + error.message, 'error');
+        }
+    }
+
+    async removeFromCart(itemId) {
+        try {
+            await this.apiRequest(`/cart/${itemId}`, 'DELETE');
+            this.showNotification('商品已从购物车移除', 'success');
+            this.loadCart(); // 重新加载购物车
+            this.updateCartBadge();
+        } catch (error) {
+            this.showNotification('移除创意产品失败: ' + error.message, 'error');
+        }
+    }
+
+    showCartLoginPrompt() {
+        const cartContent = document.getElementById('cartContent');
+        cartContent.innerHTML = `
+            <div class="cart-login-prompt">
+                <i class="fas fa-user-lock"></i>
+                <h3>请先登录</h3>
+                <p>登录后查看和管理购物车</p>
+                <button class="btn btn-primary" onclick="app.showAuthModal('login')">立即登录</button>
+            </div>
+        `;
+        document.getElementById('cartSummary').style.display = 'none';
+    }
+
+    showCartError(message) {
+        const cartContent = document.getElementById('cartContent');
+        cartContent.innerHTML = `
+            <div class="cart-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>加载失败</h3>
+                <p>${message}</p>
+                <button class="btn btn-outline" onclick="app.loadCart()">重试</button>
+            </div>
+        `;
+        document.getElementById('cartSummary').style.display = 'none';
+    }
+
+    updateCartBadge() {
+        const badge = document.getElementById('cartBadge');
+        if (this.token) {
+            // 这里简化处理，实际应该从服务器获取购物车商品数量
+            badge.style.display = 'inline';
+            badge.textContent = '!';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    showCheckoutModal() {
+        document.getElementById('checkoutModal').style.display = 'flex';
+        this.renderOrderSummary();
+    }
+
+    hideCheckoutModal() {
+        document.getElementById('checkoutModal').style.display = 'none';
+    }
+
+    async renderOrderSummary() {
+        try {
+            const cartResponse = await this.apiRequest('/cart', 'GET');
+            const orderSummary = document.getElementById('orderSummary');
+            
+            orderSummary.innerHTML = cartResponse.items.map(item => `
+                <div class="order-item">
+                    <img src="${item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="创意设计">
+                    <div class="order-item-info">
+                        <h4>${item.product?.name}</h4>
+                        <p>${item.size} | ${item.color} | x${item.quantity}</p>
+                    </div>
+                    <div class="order-item-price">
+                        ¥${(item.product?.base_price * item.quantity).toFixed(2)}
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('orderTotalAmount').textContent = 
+                `¥${(cartResponse.total_value || 0).toFixed(2)}`;
+
+        } catch (error) {
+            console.error('加载订单汇总失败:', error);
+        }
+    }
+
+    async createOrder() {
+        try {
+            const cartResponse = await this.apiRequest('/cart', 'GET');
+            const cartItemIds = cartResponse.items.map(item => item.id);
+
+            const orderData = {
+                cart_item_ids: cartItemIds
+            };
+
+            const response = await this.apiRequest('/orders', 'POST', orderData);
+            
+            this.showNotification('订单创建成功！', 'success');
+            this.hideCheckoutModal();
+            this.loadCart(); // 清空购物车
+            this.updateCartBadge();
+            
+            // 跳转到订单页面
+            setTimeout(() => {
+                this.showSection('ordersSection');
+            }, 1500);
+
+        } catch (error) {
+            this.showNotification('创建订单失败: ' + error.message, 'error');
+        }
+    }
+
+    async loadOrders() {
+        if (!this.token) {
+            this.showOrdersLoginPrompt();
+            return;
+        }
+
+        try {
+            const response = await this.apiRequest('/orders', 'GET');
+            
+            // 确保返回的是数组格式
+            let orders = response.orders || response;
+            if (!Array.isArray(orders)) {
+                orders = [];
+            }
+            
+            this.renderOrders(orders);
+        } catch (error) {
+            console.error('加载订单失败:', error);
+            this.showOrdersError(error.message);
+        }
+    }
+
+    renderOrders(orders) {
+        const ordersList = document.getElementById('ordersList');
+        
+        if (!orders || orders.length === 0) {
+            ordersList.innerHTML = `
+                <div class="orders-empty">
+                    <i class="fas fa-receipt"></i>
+                    <h3>暂无订单</h3>
+                    <p>您还没有任何订单记录</p>
+                    <button class="btn btn-primary" onclick="app.showSection('shopSection')">去购物</button>
+                </div>
+            `;
+            return;
+        }
+
+        ordersList.innerHTML = orders.map(order => `
+            <div class="order-card">
+                <div class="order-header">
+                    <div class="order-info">
+                        <h3>订单号: ${order.order_sn}</h3>
+                        <span class="order-date">${formatDate(order.created_at)}</span>
+                    </div>
+                    <div class="order-status ${order.status}">
+                        ${this.getOrderStatusText(order.status)}
+                    </div>
+                </div>
+                <div class="order-items">
+                    ${order.order_items?.map(item => `
+                        <div class="order-item">
+                            <img src="${item.design_image_url}" alt="设计图案">
+                            <div class="item-info">
+                                <h4>${item.product_name}</h4>
+                                <p>${item.size} | ${item.color} | x${item.quantity}</p>
+                            </div>
+                            <div class="item-price">¥${item.price.toFixed(2)}</div>
+                        </div>
+                    `).join('') || ''}
+                </div>
+                <div class="order-footer">
+                    <div class="order-total">
+                        总计: ¥${order.total_amount.toFixed(2)}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    getOrderStatusText(status) {
+        const statusMap = {
+            'pending': '待支付',
+            'paid': '已支付',
+            'shipped': '已发货',
+            'completed': '已完成',
+            'cancelled': '已取消'
+        };
+        return statusMap[status] || status;
+    }
+
+    showOrdersLoginPrompt() {
+        const ordersList = document.getElementById('ordersList');
+        ordersList.innerHTML = `
+            <div class="orders-login-prompt">
+                <i class="fas fa-user-lock"></i>
+                <h3>请先登录</h3>
+                <p>登录后查看订单记录</p>
+                <button class="btn btn-primary" onclick="app.showAuthModal('login')">立即登录</button>
+            </div>
+        `;
+    }
+
+    showOrdersError(message) {
+        const ordersList = document.getElementById('ordersList');
+        ordersList.innerHTML = `
+            <div class="orders-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>加载失败</h3>
+                <p>${message}</p>
+                <button class="btn btn-outline" onclick="app.loadOrders()">重试</button>
+            </div>
+        `;
+    }
 }
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
-    new AITshirtShop();
+    window.app = new AICreativeStudio();
 });
 
 // 工具函数

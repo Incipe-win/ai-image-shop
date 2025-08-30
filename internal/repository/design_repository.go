@@ -23,6 +23,12 @@ func (r *DesignRepository) FindByUserID(userID uint) ([]model.Design, error) {
 	return designs, err
 }
 
+func (r *DesignRepository) FindByUserIDAndCategory(userID uint, category string) ([]model.Design, error) {
+	var designs []model.Design
+	err := r.db.Where("user_id = ? AND category = ?", userID, category).Order("created_at DESC").Find(&designs).Error
+	return designs, err
+}
+
 func (r *DesignRepository) FindByID(id uint) (*model.Design, error) {
 	var design model.Design
 	err := r.db.First(&design, id).Error

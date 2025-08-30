@@ -3,10 +3,10 @@ server:
   env: "development" # development or production
 
 database:
-  dsn: "host=localhost user=tshirt password=tshirt dbname=tshirt_db port=5432 sslmode=disable"
+  dsn: "host=localhost user=creative password=creative dbname=creative_studio_db port=5432 sslmode=disable"
 
 jwt:
-  secret: "tshirt_secret_key"
+  secret: "creative_studio_secret_key"
 
 ai:
   api_key: "2d115eac-3988-47f2-92ac-4f5ac4703a2c"

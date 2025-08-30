@@ -58,7 +58,7 @@ func setupRoutes(r *gin.Engine) {
 	api := r.Group("/api/v1")
 	{
 		api.GET("/health", healthCheck)
-		api.GET("/tshirts", getTshirts)
+		api.GET("/creatives", getCreatives)
 
 		// 用户认证路由
 		auth := api.Group("/auth")
@@ -68,12 +68,46 @@ func setupRoutes(r *gin.Engine) {
 			auth.POST("/refresh", RefreshToken)
 		}
 
-		// 需要JWT认证的设计生成路由
-		protected := api.Group("/designs")
+		// 商品路由
+		products := api.Group("/products")
+		{
+			products.GET("/", GetAllProducts)
+			products.GET("/:id", GetProductByID)
+			products.GET("/category", GetProductsByCategory)
+			products.POST("/", CreateProduct) // 管理员功能，后续可加权限控制
+		}
+
+		// 需要JWT认证的路由
+		protected := api.Group("")
 		protected.Use(middleware.JWTMiddleware())
 		{
-			protected.POST("/generate", GenerateDesign)
-			protected.GET("/my-designs", GetUserDesigns)
+			// 设计路由
+			designs := protected.Group("/designs")
+			{
+				designs.POST("/generate", GenerateDesign)
+				designs.GET("/my-designs", GetUserDesigns)
+				designs.POST("/publish", PublishDesignToShop)
+			}
+
+			// 购物车路由
+			cart := protected.Group("/cart")
+			{
+				cart.POST("/add", AddToCart)
+				cart.GET("/", GetCart)
+				cart.PUT("/:id", UpdateCartItem)
+				cart.DELETE("/:id", RemoveFromCart)
+				cart.DELETE("/clear", ClearCart)
+			}
+
+			// 订单路由
+			orders := protected.Group("/orders")
+			{
+				orders.POST("/", CreateOrder)
+				orders.GET("/", GetUserOrders)
+				orders.GET("/:id", GetOrderByID)
+				orders.GET("/sn/:order_sn", GetOrderByOrderSN)
+				orders.PUT("/:id/status", UpdateOrderStatus)
+			}
 		}
 	}
 }
@@ -93,16 +127,16 @@ func healthCheck(c *gin.Context) {
 	})
 }
 
-// GetTshirts godoc
-// @Summary 获取T恤列表
-// @Description 获取所有可用的T恤产品列表
+// GetCreatives godoc
+// @Summary 获取创意产品列表
+// @Description 获取所有可用的创意产品列表
 // @Tags products
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]interface{} "{“message”: “T-shirts endpoint”}"
-// @Router /tshirts [get]
-func getTshirts(c *gin.Context) {
+// @Success 200 {object} map[string]interface{} "{"message": "Creative products endpoint"}"
+// @Router /creatives [get]
+func getCreatives(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"message": "T-shirts endpoint",
+		"message": "Creative products endpoint",
 	})
 }

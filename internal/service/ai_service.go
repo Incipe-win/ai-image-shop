@@ -45,12 +45,22 @@ type Usage struct {
 }
 
 type AIGenerateRequest struct {
-	Prompt string `json:"prompt" binding:"required"`
+	Prompt   string `json:"prompt" binding:"required"`
+	Category string `json:"category"`
+	Style    string `json:"style"`
 }
 
 type AIGenerateResponse struct {
 	ImageURL string `json:"image_url"`
 	Message  string `json:"message"`
+}
+
+type PublishToShopRequest struct {
+	DesignID    uint    `json:"design_id" binding:"required"`
+	ProductName string  `json:"product_name" binding:"required"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price" binding:"required,min=0.01"`
+	Material    string  `json:"material"`
 }
 
 func NewAIService() *AIService {

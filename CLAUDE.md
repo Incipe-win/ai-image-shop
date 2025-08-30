@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an AI-powered T-shirt shop application built in Go. The project follows standard Go project layout conventions with a clean architecture pattern.
+This is an AI-powered Creative shop application built in Go. The project follows standard Go project layout conventions with a clean architecture pattern.
 
 ## Commands
 
@@ -96,7 +96,7 @@ The project follows a layered architecture:
 - Go 1.25.0 (as specified in go.mod)
 - PostgreSQL database integration
 - JWT authentication
-- AI service integration for t-shirt design generation
+- AI service integration for creative design generation
 - Swagger/OpenAPI documentation generation with swaggo
 
 ### API Documentation
@@ -110,7 +110,7 @@ The project includes comprehensive RESTful API documentation using Swagger/OpenA
 - **Authentication**: `/api/v1/auth/*` - User registration, login, token refresh
 - **Designs**: `/api/v1/designs/*` - AI design generation and user design management
 - **Health**: `/api/v1/health` - Service health check
-- **Products**: `/api/v1/tshirts` - T-shirt product listing
+- **Products**: `/api/v1/creatives` - Creative product listing
 
 #### Documentation Features:
 - Interactive API testing through Swagger UI
