@@ -11,7 +11,6 @@ type Product struct {
 	Description string         `gorm:"type:text" json:"description"`
 	BasePrice   float64        `gorm:"not null;type:decimal(10,2)" json:"base_price"`
 	Category    string         `gorm:"size:50" json:"category"`
-	Material    string         `gorm:"size:50" json:"material"`
 	Brand       string         `gorm:"size:50" json:"brand"`
 	IsActive    bool           `gorm:"default:true" json:"is_active"`
 	

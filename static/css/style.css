@@ -904,46 +904,57 @@ body {
     object-fit: cover;
 }
 
-.design-info {
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: var(--bg-secondary);
-    border-radius: var(--radius);
-}
-
-.design-prompt-preview {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    font-style: italic;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.creator-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.creator-info i {
-    font-size: 0.8rem;
-}
 
 .product-info {
-    padding: 1.5rem;
+    padding: 1rem;
+    text-align: center;
 }
 
-.product-info h3 {
-    margin-bottom: 0.5rem;
+.product-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 44px;
+}
+
+.product-main-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.product-name {
     color: var(--text-primary);
-    font-size: 1.1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    flex-shrink: 0;
+}
+
+.product-creator {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.product-category-badge {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .product-description {
@@ -952,26 +963,39 @@ body {
     margin-bottom: 1rem;
 }
 
-.product-meta {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.product-category,
-.product-material {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-}
 
 .product-price {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--primary-color);
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    line-height: 1.2;
+}
+
+
+.cart-icon-btn {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.cart-icon-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.cart-icon-btn i {
+    font-size: 1rem;
 }
 
 .btn-small {
@@ -1597,6 +1621,99 @@ body {
         font-size: 0.7rem;
         padding: 0.1rem 0.3rem;
         min-width: 1rem;
+    }
+}
+
+/* 产品详情模态框样式 */
+.product-detail-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.detail-image {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.detail-image img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.detail-info h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+}
+
+.detail-meta {
+    margin-bottom: 1.5rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.detail-price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.detail-description,
+.detail-prompt,
+.detail-style {
+    margin-bottom: 1.5rem;
+}
+
+.detail-description h4,
+.detail-prompt h4,
+.detail-style h4 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.detail-description p,
+.detail-prompt p,
+.detail-style p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.detail-prompt p {
+    font-style: italic;
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: var(--radius);
+}
+
+@media (max-width: 768px) {
+    .product-detail-content {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .detail-image {
+        max-width: 250px;
     }
 }
 

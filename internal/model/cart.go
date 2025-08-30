@@ -10,8 +10,6 @@ type CartItem struct {
 	UserID    uint           `gorm:"not null;index" json:"user_id"`
 	ProductID uint           `gorm:"not null" json:"product_id"`
 	DesignID  uint           `gorm:"not null" json:"design_id"`
-	Size      string         `gorm:"not null;size:10" json:"size"`
-	Color     string         `gorm:"not null;size:30" json:"color"`
 	Quantity  int            `gorm:"not null;default:1" json:"quantity"`
 	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`

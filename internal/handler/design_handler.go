@@ -131,6 +131,7 @@ func GenerateDesign(c *gin.Context) {
 	logger.Info("Design generated successfully", "userID", userID, "imageURL", imageURL, "designID", design.ID)
 
 	c.JSON(http.StatusOK, service.AIGenerateResponse{
+		ID:       design.ID,
 		ImageURL: imageURL,
 		Message:  "Design generated successfully",
 	})
@@ -265,7 +266,6 @@ func PublishDesignToShop(c *gin.Context) {
 		Description:  req.Description,
 		BasePrice:    req.Price,
 		Category:     design.Category,
-		Material:     req.Material,
 		Brand:        "创意工坊",
 		IsActive:     true,
 		DesignID:     &design.ID,

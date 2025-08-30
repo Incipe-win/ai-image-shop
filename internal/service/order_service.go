@@ -83,8 +83,6 @@ func (s *OrderService) CreateOrder(userID uint, req *CreateOrderRequest) (*Order
 		orderItem := model.OrderItem{
 			ProductName:    cartItem.Product.Name,
 			DesignImageURL: cartItem.Design.ImageURL,
-			Size:           cartItem.Size,
-			Color:          cartItem.Color,
 			Price:          cartItem.Product.BasePrice,
 			Quantity:       cartItem.Quantity,
 		}

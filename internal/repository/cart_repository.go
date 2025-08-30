@@ -16,8 +16,8 @@ func NewCartRepository(db *gorm.DB) *CartRepository {
 func (r *CartRepository) AddItem(item *model.CartItem) error {
 	// 检查是否已经存在相同的商品配置
 	var existingItem model.CartItem
-	err := r.db.Where("user_id = ? AND product_id = ? AND design_id = ? AND size = ? AND color = ?",
-		item.UserID, item.ProductID, item.DesignID, item.Size, item.Color).First(&existingItem).Error
+	err := r.db.Where("user_id = ? AND product_id = ? AND design_id = ?",
+		item.UserID, item.ProductID, item.DesignID).First(&existingItem).Error
 
 	if err == gorm.ErrRecordNotFound {
 		// 不存在，创建新记录

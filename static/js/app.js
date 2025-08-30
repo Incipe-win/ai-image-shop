@@ -66,6 +66,13 @@ class AICreativeStudio {
                 this.hideAuthModal();
             }
         });
+        
+        // 产品详情模态框背景点击关闭
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'productDetailsModal') {
+                this.hideProductDetailsModal();
+            }
+        });
     }
 
     showSection(sectionId) {
@@ -389,6 +396,47 @@ class AICreativeStudio {
         document.getElementById('publishForm').reset();
     }
 
+    async showProductDetails(productId) {
+        try {
+            const response = await this.apiRequest(`/products/${productId}`, 'GET', null, false);
+            const product = response.product || response;
+            
+            const modal = document.getElementById('productDetailsModal');
+            document.getElementById('detailProductName').textContent = product.name;
+            document.getElementById('detailProductImage').src = product.image_url ? `/static${product.image_url}` : '';
+            document.getElementById('detailProductDescription').textContent = product.description || '暂无描述';
+            document.getElementById('detailProductPrice').textContent = `¥${product.base_price.toFixed(2)}`;
+            document.getElementById('detailProductCategory').textContent = this.getCategoryName(product.category) || '通用';
+            document.getElementById('detailProductCreator').textContent = product.creator_name || '匿名';
+            
+            if (product.design_prompt) {
+                document.getElementById('detailDesignPrompt').textContent = `"${product.design_prompt}"`;
+                document.getElementById('detailDesignPromptGroup').style.display = 'block';
+            } else {
+                document.getElementById('detailDesignPromptGroup').style.display = 'none';
+            }
+            
+            if (product.design_style) {
+                document.getElementById('detailDesignStyle').textContent = product.design_style;
+                document.getElementById('detailDesignStyleGroup').style.display = 'block';
+            } else {
+                document.getElementById('detailDesignStyleGroup').style.display = 'none';
+            }
+            
+            // 存储当前产品ID用于添加到购物车
+            this.currentProductDetailId = product.id;
+            modal.style.display = 'flex';
+            
+        } catch (error) {
+            this.showNotification('加载产品详情失败: ' + error.message, 'error');
+        }
+    }
+
+    hideProductDetailsModal() {
+        document.getElementById('productDetailsModal').style.display = 'none';
+        this.currentProductDetailId = null;
+    }
+
     async handlePublishToShop(e) {
         e.preventDefault();
         
@@ -412,7 +460,7 @@ class AICreativeStudio {
         }
 
         try {
-            const response = await this.apiRequest('/designs/publish', 'POST', {
+            await this.apiRequest('/designs/publish', 'POST', {
                 design_id: this.currentDesign.id,
                 product_name: productName,
                 description: description,
@@ -582,44 +630,32 @@ class AICreativeStudio {
             return;
         }
 
-        productsGrid.innerHTML = products.map(product => `
-            <div class="product-card" data-product-id="${product.id}">
-                <div class="product-image">
-                    ${product.image_url ? 
-                        `<img src="${product.image_url}" alt="${product.name}">` : 
-                        '<i class="fas fa-palette"></i>'
-                    }
-                </div>
-                <div class="product-info">
-                    <h3>${product.name}</h3>
-                    <p class="product-description">${product.description || '优质创意产品'}</p>
-                    
-                    ${product.design_prompt ? `
-                        <div class="design-info">
-                            <p class="design-prompt-preview">"${product.design_prompt}"</p>
-                            ${product.design_style ? `<span class="style-tag">${product.design_style}</span>` : ''}
-                        </div>
-                    ` : ''}
-                    
-                    <div class="product-meta">
-                        <span class="product-category">${this.getCategoryName(product.category) || '通用'}</span>
-                        <span class="product-material">${product.material || '纯棉'}</span>
+        productsGrid.innerHTML = products.map(product => {
+            const imageContent = product.image_url ? 
+                `<img src="/static${product.image_url}" alt="${product.name}" onload="this.style.display='block'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                 <i class="fas fa-palette" style="display: none;"></i>` : 
+                '<i class="fas fa-palette"></i>';
+            
+            return `
+                <div class="product-card" data-product-id="${product.id}">
+                    <div class="product-image" onclick="app.showProductDetails(${product.id})" style="cursor: pointer;">
+                        ${imageContent}
                     </div>
-                    
-                    ${product.creator_name ? `
-                        <div class="creator-info">
-                            <i class="fas fa-user"></i>
-                            <span>创作者: ${product.creator_name}</span>
+                    <div class="product-info">
+                        <div class="product-summary">
+                            <div class="product-main-info">
+                                <h3 class="product-name">${product.name}</h3>
+                                <span class="product-creator">by ${product.creator_name || '匿名'}</span>
+                                <span class="product-category-badge">${this.getCategoryName(product.category) || '通用'}</span>
+                            </div>
+                            <button class="cart-icon-btn" onclick="app.addToCartDirectly(${product.id})" title="添加到购物车">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
                         </div>
-                    ` : ''}
-                    
-                    <div class="product-price">¥${product.base_price.toFixed(2)}</div>
-                    <button class="btn btn-primary btn-small" onclick="app.showAddToCartModal(${product.id})">
-                        添加到购物车
-                    </button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     async showAddToCartModal(productId) {
@@ -652,17 +688,10 @@ class AICreativeStudio {
         this.currentProduct = null;
     }
 
-    async handleAddToCart(e) {
-        e.preventDefault();
-        
-        if (!this.currentProduct) return;
-
-        const size = document.getElementById('sizeSelect').value;
-        const color = document.getElementById('colorSelect').value;
-        const quantity = parseInt(document.getElementById('quantityInput').value);
-
-        if (!size || !color) {
-            this.showNotification('请选择尺码和颜色', 'error');
+    async addToCartDirectly(productId) {
+        if (!this.token) {
+            this.showNotification('请先登录以添加创意产品到购物车', 'error');
+            this.showAuthModal('login');
             return;
         }
 
@@ -672,30 +701,27 @@ class AICreativeStudio {
             const designs = designsResponse.designs || [];
 
             if (designs.length === 0) {
-                this.showNotification('请先创建一个设计作品', 'error');
+                this.showNotification('请先创建一个设计作品才能购买商品', 'error');
                 this.showSection('designSection');
-                this.hideAddToCartModal();
                 return;
             }
 
-            // 这里简化处理，使用第一个设计
-            const design = designs[0];
+            // 使用最新的设计（最后一个）
+            const design = designs[designs.length - 1];
 
             const cartItem = {
-                product_id: this.currentProduct.id,
-                design_id: design.id,
-                size: size,
-                color: color,
-                quantity: quantity
+                product_id: parseInt(productId),
+                design_id: parseInt(design.id),
+                quantity: 1
             };
 
             await this.apiRequest('/cart/add', 'POST', cartItem);
             
             this.showNotification('创意产品已添加到购物车', 'success');
-            this.hideAddToCartModal();
             this.updateCartBadge();
             
         } catch (error) {
+            console.error('添加到购物车详细错误:', error);
             this.showNotification('添加到购物车失败: ' + error.message, 'error');
         }
     }
@@ -740,10 +766,6 @@ class AICreativeStudio {
                 <div class="cart-item-details">
                     <h4>${item.product?.name || '创意产品'}</h4>
                     <p class="design-prompt">${item.design?.prompt || '自定义创意'}</p>
-                    <div class="item-attributes">
-                        <span class="attribute">尺码: ${item.size}</span>
-                        <span class="attribute">颜色: ${item.color}</span>
-                    </div>
                     <div class="item-price">¥${(item.product?.base_price * item.quantity).toFixed(2)}</div>
                 </div>
                 <div class="cart-item-controls">
@@ -817,12 +839,22 @@ class AICreativeStudio {
         document.getElementById('cartSummary').style.display = 'none';
     }
 
-    updateCartBadge() {
+    async updateCartBadge() {
         const badge = document.getElementById('cartBadge');
         if (this.token) {
-            // 这里简化处理，实际应该从服务器获取购物车商品数量
-            badge.style.display = 'inline';
-            badge.textContent = '!';
+            try {
+                const cartResponse = await this.apiRequest('/cart', 'GET');
+                const totalItems = cartResponse.total_items || 0;
+                if (totalItems > 0) {
+                    badge.style.display = 'inline';
+                    badge.textContent = totalItems > 99 ? '99+' : totalItems.toString();
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('获取购物车数量失败:', error);
+                badge.style.display = 'none';
+            }
         } else {
             badge.style.display = 'none';
         }
@@ -847,7 +879,7 @@ class AICreativeStudio {
                     <img src="${item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="创意设计">
                     <div class="order-item-info">
                         <h4>${item.product?.name}</h4>
-                        <p>${item.size} | ${item.color} | x${item.quantity}</p>
+                        <p>数量: x${item.quantity}</p>
                     </div>
                     <div class="order-item-price">
                         ¥${(item.product?.base_price * item.quantity).toFixed(2)}
@@ -872,7 +904,7 @@ class AICreativeStudio {
                 cart_item_ids: cartItemIds
             };
 
-            const response = await this.apiRequest('/orders', 'POST', orderData);
+            await this.apiRequest('/orders', 'POST', orderData);
             
             this.showNotification('订单创建成功！', 'success');
             this.hideCheckoutModal();
@@ -943,7 +975,7 @@ class AICreativeStudio {
                             <img src="${item.design_image_url}" alt="设计图案">
                             <div class="item-info">
                                 <h4>${item.product_name}</h4>
-                                <p>${item.size} | ${item.color} | x${item.quantity}</p>
+                                <p>数量: x${item.quantity}</p>
                             </div>
                             <div class="item-price">¥${item.price.toFixed(2)}</div>
                         </div>

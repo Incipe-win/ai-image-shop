@@ -14,20 +14,22 @@ type CreateProductRequest struct {
 	Description string  `json:"description"`
 	BasePrice   float64 `json:"base_price" binding:"required,gt=0"`
 	Category    string  `json:"category"`
-	Material    string  `json:"material"`
 	Brand       string  `json:"brand"`
 }
 
 type ProductResponse struct {
-	ID          uint    `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	BasePrice   float64 `json:"base_price"`
-	Category    string  `json:"category"`
-	Material    string  `json:"material"`
-	Brand       string  `json:"brand"`
-	IsActive    bool    `json:"is_active"`
-	CreatedAt   string  `json:"created_at"`
+	ID           uint    `json:"id"`
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	BasePrice    float64 `json:"base_price"`
+	Category     string  `json:"category"`
+	Brand        string  `json:"brand"`
+	IsActive     bool    `json:"is_active"`
+	ImageURL     string  `json:"image_url"`
+	DesignPrompt string  `json:"design_prompt"`
+	DesignStyle  string  `json:"design_style"`
+	CreatorName  string  `json:"creator_name"`
+	CreatedAt    string  `json:"created_at"`
 }
 
 func NewProductService(productRepo *repository.ProductRepository) *ProductService {
@@ -42,7 +44,6 @@ func (s *ProductService) CreateProduct(req *CreateProductRequest) (*ProductRespo
 		Description: req.Description,
 		BasePrice:   req.BasePrice,
 		Category:    req.Category,
-		Material:    req.Material,
 		Brand:       req.Brand,
 		IsActive:    true,
 	}
@@ -93,14 +94,17 @@ func (s *ProductService) GetProductsByCategory(category string) ([]ProductRespon
 
 func (s *ProductService) toProductResponse(product *model.Product) *ProductResponse {
 	return &ProductResponse{
-		ID:          product.ID,
-		Name:        product.Name,
-		Description: product.Description,
-		BasePrice:   product.BasePrice,
-		Category:    product.Category,
-		Material:    product.Material,
-		Brand:       product.Brand,
-		IsActive:    product.IsActive,
-		CreatedAt:   product.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:           product.ID,
+		Name:         product.Name,
+		Description:  product.Description,
+		BasePrice:    product.BasePrice,
+		Category:     product.Category,
+		Brand:        product.Brand,
+		IsActive:     product.IsActive,
+		ImageURL:     product.ImageURL,
+		DesignPrompt: product.DesignPrompt,
+		DesignStyle:  product.DesignStyle,
+		CreatorName:  product.CreatorName,
+		CreatedAt:    product.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

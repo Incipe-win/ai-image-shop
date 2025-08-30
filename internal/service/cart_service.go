@@ -15,11 +15,9 @@ type CartService struct {
 }
 
 type AddToCartRequest struct {
-	ProductID uint   `json:"product_id" binding:"required"`
-	DesignID  uint   `json:"design_id" binding:"required"`
-	Size      string `json:"size" binding:"required"`
-	Color     string `json:"color" binding:"required"`
-	Quantity  int    `json:"quantity" binding:"required,gt=0"`
+	ProductID uint `json:"product_id" binding:"required"`
+	DesignID  uint `json:"design_id" binding:"required"`
+	Quantity  int  `json:"quantity" binding:"required,gt=0"`
 }
 
 type UpdateCartRequest struct {
@@ -30,8 +28,6 @@ type CartItemResponse struct {
 	ID       uint                     `json:"id"`
 	Product  *ProductResponse         `json:"product"`
 	Design   *CartDesignResponse      `json:"design"`
-	Size     string                   `json:"size"`
-	Color    string                   `json:"color"`
 	Quantity int                      `json:"quantity"`
 }
 
@@ -87,8 +83,6 @@ func (s *CartService) AddToCart(userID uint, req *AddToCartRequest) error {
 		UserID:    userID,
 		ProductID: req.ProductID,
 		DesignID:  req.DesignID,
-		Size:      req.Size,
-		Color:     req.Color,
 		Quantity:  req.Quantity,
 	}
 
@@ -108,8 +102,6 @@ func (s *CartService) GetCart(userID uint) (*CartResponse, error) {
 	for _, item := range items {
 		cartItem := CartItemResponse{
 			ID:       item.ID,
-			Size:     item.Size,
-			Color:    item.Color,
 			Quantity: item.Quantity,
 		}
 
@@ -121,7 +113,6 @@ func (s *CartService) GetCart(userID uint) (*CartResponse, error) {
 				Description: item.Product.Description,
 				BasePrice:   item.Product.BasePrice,
 				Category:    item.Product.Category,
-				Material:    item.Product.Material,
 				Brand:       item.Product.Brand,
 				IsActive:    item.Product.IsActive,
 				CreatedAt:   item.Product.CreatedAt.Format("2006-01-02 15:04:05"),

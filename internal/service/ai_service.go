@@ -51,6 +51,7 @@ type AIGenerateRequest struct {
 }
 
 type AIGenerateResponse struct {
+	ID       uint   `json:"id"`
 	ImageURL string `json:"image_url"`
 	Message  string `json:"message"`
 }
@@ -60,7 +61,6 @@ type PublishToShopRequest struct {
 	ProductName string  `json:"product_name" binding:"required"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price" binding:"required,min=0.01"`
-	Material    string  `json:"material"`
 }
 
 func NewAIService() *AIService {
