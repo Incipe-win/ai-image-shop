@@ -29,6 +29,7 @@ type ProductResponse struct {
 	DesignPrompt string  `json:"design_prompt"`
 	DesignStyle  string  `json:"design_style"`
 	CreatorName  string  `json:"creator_name"`
+	CreatorID    *uint   `json:"creator_id"`
 	CreatedAt    string  `json:"created_at"`
 }
 
@@ -105,6 +106,7 @@ func (s *ProductService) toProductResponse(product *model.Product) *ProductRespo
 		DesignPrompt: product.DesignPrompt,
 		DesignStyle:  product.DesignStyle,
 		CreatorName:  product.CreatorName,
+		CreatorID:    product.CreatorID,
 		CreatedAt:    product.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

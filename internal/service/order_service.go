@@ -20,6 +20,7 @@ type CreateOrderRequest struct {
 type OrderItemResponse struct {
 	ID             uint    `json:"id"`
 	ProductName    string  `json:"product_name"`
+	ProductImageURL string  `json:"product_image_url"`
 	DesignImageURL string  `json:"design_image_url"`
 	Size           string  `json:"size"`
 	Color          string  `json:"color"`
@@ -81,10 +82,11 @@ func (s *OrderService) CreateOrder(userID uint, req *CreateOrderRequest) (*Order
 	var orderItems []model.OrderItem
 	for _, cartItem := range cartItems {
 		orderItem := model.OrderItem{
-			ProductName:    cartItem.Product.Name,
-			DesignImageURL: cartItem.Design.ImageURL,
-			Price:          cartItem.Product.BasePrice,
-			Quantity:       cartItem.Quantity,
+			ProductName:     cartItem.Product.Name,
+			ProductImageURL: cartItem.Product.ImageURL,
+			DesignImageURL:  cartItem.Design.ImageURL,
+			Price:           cartItem.Product.BasePrice,
+			Quantity:        cartItem.Quantity,
 		}
 		orderItems = append(orderItems, orderItem)
 	}
@@ -171,6 +173,7 @@ func (s *OrderService) toOrderResponse(order *model.Order) *OrderResponse {
 		orderItems = append(orderItems, OrderItemResponse{
 			ID:             item.ID,
 			ProductName:    item.ProductName,
+			ProductImageURL: item.ProductImageURL,
 			DesignImageURL: item.DesignImageURL,
 			Size:           item.Size,
 			Color:          item.Color,

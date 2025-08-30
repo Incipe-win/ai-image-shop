@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 创意设计工坊 - 智能创意设计平台</title>
+    <link rel="icon" href="/static/images/ai.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -413,6 +414,51 @@
                         <button class="btn btn-primary btn-full" onclick="app.addToCartDirectly(app.currentProductDetailId)">
                             <i class="fas fa-shopping-cart"></i>添加到购物车
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画廊作品详情模态框 -->
+    <div class="modal" id="galleryDetailsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>我的创意作品</h3>
+                <button class="modal-close" onclick="app.hideGalleryDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-detail-content">
+                    <div class="detail-image">
+                        <img id="galleryDetailImage" src="" alt="创意作品">
+                    </div>
+                    <div class="detail-info">
+                        <div class="detail-meta">
+                            <div class="detail-row">
+                                <span class="detail-label">分类：</span>
+                                <span id="galleryDetailCategory"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">创建时间：</span>
+                                <span id="galleryDetailCreatedAt"></span>
+                            </div>
+                        </div>
+                        <div id="galleryDetailPromptGroup" class="detail-prompt">
+                            <h4>创意灵感</h4>
+                            <p id="galleryDetailPrompt"></p>
+                        </div>
+                        <div id="galleryDetailStyleGroup" class="detail-style">
+                            <h4>艺术风格</h4>
+                            <p id="galleryDetailStyle"></p>
+                        </div>
+                        <div class="gallery-detail-actions">
+                            <button class="btn btn-success btn-full" onclick="app.downloadGalleryItemImage()">
+                                <i class="fas fa-download"></i>下载作品
+                            </button>
+                            <button class="btn btn-outline btn-full" onclick="app.publishGalleryItemToShop()">
+                                <i class="fas fa-store"></i>发布到商店
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

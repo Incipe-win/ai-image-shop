@@ -38,6 +38,7 @@ type OrderItem struct {
 	ID             uint           `gorm:"primaryKey" json:"id"`
 	OrderID        uint           `gorm:"not null;index" json:"order_id"`
 	ProductName    string         `gorm:"not null;size:100" json:"product_name"`
+	ProductImageURL string         `gorm:"not null;size:500" json:"product_image_url"`
 	DesignImageURL string         `gorm:"not null;size:500" json:"design_image_url"`
 	Size           string         `gorm:"not null;size:10" json:"size"`
 	Color          string         `gorm:"not null;size:30" json:"color"`

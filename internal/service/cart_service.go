@@ -15,9 +15,9 @@ type CartService struct {
 }
 
 type AddToCartRequest struct {
-	ProductID uint `json:"product_id" binding:"required"`
-	DesignID  uint `json:"design_id" binding:"required"`
-	Quantity  int  `json:"quantity" binding:"required,gt=0"`
+	ProductID uint  `json:"product_id" binding:"required"`
+	DesignID  *uint `json:"design_id"`
+	Quantity  int   `json:"quantity" binding:"required,gt=0"`
 }
 
 type UpdateCartRequest struct {
@@ -66,23 +66,54 @@ func (s *CartService) AddToCart(userID uint, req *AddToCartRequest) error {
 		return errors.New("product is not available")
 	}
 
-	// 验证设计是否存在且属于该用户
-	design, err := s.designRepo.FindByID(req.DesignID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("design not found")
+	var designID uint
+	
+	// 如果提供了设计ID，验证设计是否存在且属于该用户
+	if req.DesignID != nil {
+		design, err := s.designRepo.FindByID(*req.DesignID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("design not found")
+			}
+			return err
 		}
-		return err
-	}
 
-	if design.UserID != userID {
-		return errors.New("design does not belong to user")
+		if design.UserID != userID {
+			return errors.New("design does not belong to user")
+		}
+		
+		designID = *req.DesignID
+	} else {
+		// 如果没有提供设计ID，获取用户的设计作品
+		designs, err := s.designRepo.FindByUserID(userID)
+		if err != nil {
+			return err
+		}
+		
+		// 如果用户没有设计作品，创建一个默认设计
+		if len(designs) == 0 {
+			defaultDesign := &model.Design{
+				UserID:    userID,
+				Prompt:    "默认创意设计",
+				Category:  "general",
+				ImageURL:  "/static/images/ai.png",
+				Style:     "",
+			}
+			
+			if err := s.designRepo.Create(defaultDesign); err != nil {
+				return err
+			}
+			designID = defaultDesign.ID
+		} else {
+			// 使用用户最新的设计
+			designID = designs[0].ID
+		}
 	}
 
 	cartItem := &model.CartItem{
 		UserID:    userID,
 		ProductID: req.ProductID,
-		DesignID:  req.DesignID,
+		DesignID:  designID,
 		Quantity:  req.Quantity,
 	}
 
@@ -115,6 +146,7 @@ func (s *CartService) GetCart(userID uint) (*CartResponse, error) {
 				Category:    item.Product.Category,
 				Brand:       item.Product.Brand,
 				IsActive:    item.Product.IsActive,
+				ImageURL:    item.Product.ImageURL,
 				CreatedAt:   item.Product.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 		}

@@ -72,6 +72,9 @@ class AICreativeStudio {
             if (e.target.id === 'productDetailsModal') {
                 this.hideProductDetailsModal();
             }
+            if (e.target.id === 'galleryDetailsModal') {
+                this.hideGalleryDetailsModal();
+            }
         });
     }
 
@@ -175,7 +178,10 @@ class AICreativeStudio {
             if (response.token) {
                 this.token = response.token;
                 this.refreshToken = response.refresh_token;
-                this.currentUser = { username: response.user?.username || username };
+                this.currentUser = { 
+                    id: response.id,
+                    username: response.username || response.user?.username || username 
+                };
                 
                 localStorage.setItem('authToken', this.token);
                 localStorage.setItem('refreshToken', this.refreshToken);
@@ -283,6 +289,38 @@ class AICreativeStudio {
         this.showNotification('创意作品已下载', 'success');
     }
 
+    downloadProductImage(imageUrl, productName) {
+        if (!imageUrl) {
+            this.showNotification('图片链接无效', 'error');
+            return;
+        }
+        
+        const link = document.createElement('a');
+        link.href = `/static${imageUrl}`;
+        link.download = `${productName || 'creative-artwork'}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification('作品已下载', 'success');
+    }
+
+    downloadDesignImage(imageUrl, designPrompt) {
+        if (!imageUrl) {
+            this.showNotification('图片链接无效', 'error');
+            return;
+        }
+        
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `${designPrompt.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_') || 'creative-artwork'}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification('作品已下载', 'success');
+    }
+
     async saveDesign() {
         if (!this.currentDesign) return;
         
@@ -336,16 +374,21 @@ class AICreativeStudio {
         if (!designs || designs.length === 0) {
             galleryGrid.innerHTML = `
                 <div class="gallery-placeholder">
-                    <i class="fas fa-paint-brush"></i>
+                    <img src="/static/images/ai.png" alt="默认创意设计" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 16px;">
                     <p>还没有创意作品，快去创作吧！</p>
                 </div>
             `;
             return;
         }
         
-        galleryGrid.innerHTML = designs.map(design => `
+        // 存储设计数据以便详情查看
+        this.galleryDesigns = designs;
+        
+        galleryGrid.innerHTML = designs.map((design, index) => `
             <div class="gallery-item">
-                <img src="${design.image_url}" alt="创意作品">
+                <div class="gallery-image-container" onclick="app.showGalleryItemDetails(${index})" style="cursor: pointer;">
+                    <img src="${design.image_url}" alt="创意作品">
+                </div>
                 <div class="gallery-item-content">
                     <div class="gallery-item-meta">
                         <span class="category-tag">${this.getCategoryName(design.category)}</span>
@@ -354,7 +397,10 @@ class AICreativeStudio {
                     <p class="design-prompt">${design.prompt || '创意作品'}</p>
                     <p class="creation-time">${this.formatDate(design.created_at) || '刚刚创建'}</p>
                     <div class="gallery-actions">
-                        <button class="btn btn-success btn-sm" onclick="app.showPublishToShopModal(${design.id})">
+                        <button class="btn btn-success btn-sm" onclick="app.downloadDesignImage('${design.image_url}', '${design.prompt || 'creative-artwork'}')">
+                            <i class="fas fa-download"></i> 下载作品
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="app.showPublishToShopModal(${design.id})">
                             <i class="fas fa-store"></i> 发布到商店
                         </button>
                     </div>
@@ -441,8 +487,22 @@ class AICreativeStudio {
                 document.getElementById('detailDesignStyleGroup').style.display = 'none';
             }
             
-            // 存储当前产品ID用于添加到购物车
+            // 存储当前产品ID和判断是否为自己的作品
             this.currentProductDetailId = product.id;
+            const isOwnProduct = this.currentUser && product.creator_id === this.currentUser.id;
+            
+            // 根据是否为自己的作品显示不同的按钮
+            const actionButton = modal.querySelector('.btn-full');
+            if (isOwnProduct) {
+                actionButton.innerHTML = '<i class="fas fa-download"></i>下载作品';
+                actionButton.className = 'btn btn-success btn-full';
+                actionButton.onclick = () => this.downloadProductImage(product.image_url, product.name);
+            } else {
+                actionButton.innerHTML = '<i class="fas fa-shopping-cart"></i>添加到购物车';
+                actionButton.className = 'btn btn-primary btn-full';
+                actionButton.onclick = () => this.addToCartDirectly(this.currentProductDetailId);
+            }
+            
             modal.style.display = 'flex';
             
         } catch (error) {
@@ -453,6 +513,63 @@ class AICreativeStudio {
     hideProductDetailsModal() {
         document.getElementById('productDetailsModal').style.display = 'none';
         this.currentProductDetailId = null;
+    }
+
+    showGalleryItemDetails(designIndex) {
+        if (!this.galleryDesigns || !this.galleryDesigns[designIndex]) {
+            this.showNotification('作品信息不存在', 'error');
+            return;
+        }
+        
+        const design = this.galleryDesigns[designIndex];
+        
+        const modal = document.getElementById('galleryDetailsModal');
+        document.getElementById('galleryDetailImage').src = design.image_url;
+        document.getElementById('galleryDetailCategory').textContent = this.getCategoryName(design.category) || '通用';
+        document.getElementById('galleryDetailCreatedAt').textContent = this.formatDate(design.created_at) || '刚刚创建';
+        
+        if (design.prompt) {
+            document.getElementById('galleryDetailPrompt').textContent = `"${design.prompt}"`;
+            document.getElementById('galleryDetailPromptGroup').style.display = 'block';
+        } else {
+            document.getElementById('galleryDetailPromptGroup').style.display = 'none';
+        }
+        
+        if (design.style) {
+            document.getElementById('galleryDetailStyle').textContent = design.style;
+            document.getElementById('galleryDetailStyleGroup').style.display = 'block';
+        } else {
+            document.getElementById('galleryDetailStyleGroup').style.display = 'none';
+        }
+        
+        // 存储当前设计信息用于下载和发布
+        this.currentGalleryItem = design;
+        modal.style.display = 'flex';
+    }
+
+    hideGalleryDetailsModal() {
+        document.getElementById('galleryDetailsModal').style.display = 'none';
+        this.currentGalleryItem = null;
+    }
+
+    downloadGalleryItemImage() {
+        if (!this.currentGalleryItem) {
+            this.showNotification('没有可下载的作品', 'error');
+            return;
+        }
+        
+        this.downloadDesignImage(this.currentGalleryItem.image_url, this.currentGalleryItem.prompt || 'creative-artwork');
+        this.hideGalleryDetailsModal();
+    }
+
+    publishGalleryItemToShop() {
+        if (!this.currentGalleryItem) {
+            this.showNotification('没有可发布的作品', 'error');
+            return;
+        }
+        
+        this.hideGalleryDetailsModal();
+        this.showPublishToShopModal(this.currentGalleryItem.id);
     }
 
     async handlePublishToShop(e) {
@@ -651,6 +768,8 @@ class AICreativeStudio {
         }
 
         productsGrid.innerHTML = products.map(product => {
+            const isOwnProduct = this.currentUser && product.creator_id === this.currentUser.id;
+            
             return `
                 <div class="gallery-item product-item" data-product-id="${product.id}">
                     <div class="product-image-container" onclick="app.showProductDetails(${product.id})" style="cursor: pointer;">
@@ -667,9 +786,14 @@ class AICreativeStudio {
                         <h3 class="product-name">${product.name}</h3>
                         <p class="product-creator">by ${product.creator_name || '匿名'}</p>
                         <div class="product-actions">
-                            <button class="btn btn-primary btn-sm" onclick="app.addToCartDirectly(${product.id})">
-                                <i class="fas fa-shopping-cart"></i> 加入购物车
-                            </button>
+                            ${isOwnProduct ? 
+                                `<button class="btn btn-success btn-sm" onclick="app.downloadProductImage('${product.image_url}', '${product.name}')">
+                                    <i class="fas fa-download"></i> 下载作品
+                                </button>` :
+                                `<button class="btn btn-primary btn-sm" onclick="app.addToCartDirectly(${product.id})">
+                                    <i class="fas fa-shopping-cart"></i> 加入购物车
+                                </button>`
+                            }
                         </div>
                     </div>
                 </div>
@@ -719,20 +843,16 @@ class AICreativeStudio {
             const designsResponse = await this.apiRequest('/designs/my-designs', 'GET');
             const designs = designsResponse.designs || [];
 
-            if (designs.length === 0) {
-                this.showNotification('请先创建一个设计作品才能购买商品', 'error');
-                this.showSection('designSection');
-                return;
-            }
-
-            // 使用最新的设计（最后一个）
-            const design = designs[designs.length - 1];
-
             const cartItem = {
                 product_id: parseInt(productId),
-                design_id: parseInt(design.id),
                 quantity: 1
             };
+
+            // 如果有设计作品，使用最新的设计
+            if (designs.length > 0) {
+                const design = designs[designs.length - 1];
+                cartItem.design_id = parseInt(design.id);
+            }
 
             await this.apiRequest('/cart/add', 'POST', cartItem);
             
@@ -780,7 +900,7 @@ class AICreativeStudio {
         cartContent.innerHTML = cartData.items.map(item => `
             <div class="cart-item" data-item-id="${item.id}">
                 <div class="cart-item-image">
-                    <img src="${item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="创意设计">
+                    <img src="${item.product?.image_url ? '/static' + item.product.image_url : item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="${item.product?.name || '创意产品'}">
                 </div>
                 <div class="cart-item-details">
                     <h4>${item.product?.name || '创意产品'}</h4>
@@ -895,7 +1015,7 @@ class AICreativeStudio {
             
             orderSummary.innerHTML = cartResponse.items.map(item => `
                 <div class="order-item">
-                    <img src="${item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="创意设计">
+                    <img src="${item.product?.image_url ? '/static' + item.product.image_url : item.design?.image_url || '/static/images/placeholder-artwork.png'}" alt="${item.product?.name || '创意产品'}">
                     <div class="order-item-info">
                         <h4>${item.product?.name}</h4>
                         <p>数量: x${item.quantity}</p>
@@ -991,7 +1111,7 @@ class AICreativeStudio {
                 <div class="order-items">
                     ${order.order_items?.map(item => `
                         <div class="order-item">
-                            <img src="${item.design_image_url}" alt="设计图案">
+                            <img src="${item.product_image_url ? '/static' + item.product_image_url : item.design_image_url}" alt="${item.product_name || '创意产品'}">
                             <div class="item-info">
                                 <h4>${item.product_name}</h4>
                                 <p>数量: x${item.quantity}</p>
