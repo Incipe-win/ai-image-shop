@@ -41,7 +41,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		jwtSecret := viper.GetString("jwt.secret")
 		if jwtSecret == "" {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "JWT secret not configured",
+				"error": "JWT密钥未配置",
 			})
 			c.Abort()
 			return
@@ -56,7 +56,7 @@ func JWTMiddleware() gin.HandlerFunc {
 
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid token",
+				"error":   "Invalid token",
 				"details": err.Error(),
 			})
 			c.Abort()
@@ -90,7 +90,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		}
 
 		c.Set("userID", uint(userID))
-		
+
 		if username, exists := claims["username"]; exists {
 			if usernameStr, ok := username.(string); ok {
 				c.Set("username", usernameStr)

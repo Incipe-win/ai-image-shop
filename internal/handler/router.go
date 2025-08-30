@@ -7,6 +7,8 @@ import (
 	"github.com/Incipe-win/ai-tshirt-shop/internal/middleware"
 	"github.com/Incipe-win/ai-tshirt-shop/pkg/logger"
 	"github.com/gin-gonic/gin"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
 )
 
 func InitRouter(env string) *gin.Engine {
@@ -45,6 +47,9 @@ func setupRoutes(r *gin.Engine) {
 	r.Static("/static", "./static")
 	r.Static("/images", "./static/images")
 
+	// Swagger文档路由
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// 前端页面路由
 	r.GET("/", func(c *gin.Context) {
 		c.File("./static/index.html")
@@ -60,6 +65,7 @@ func setupRoutes(r *gin.Engine) {
 		{
 			auth.POST("/register", Register)
 			auth.POST("/login", Login)
+			auth.POST("/refresh", RefreshToken)
 		}
 
 		// 需要JWT认证的设计生成路由
@@ -72,6 +78,14 @@ func setupRoutes(r *gin.Engine) {
 	}
 }
 
+// HealthCheck godoc
+// @Summary 健康检查
+// @Description 检查API服务状态
+// @Tags health
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "{“status”: “ok”, “time”: “2023-01-01T00:00:00Z”}"
+// @Router /health [get]
 func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
@@ -79,6 +93,14 @@ func healthCheck(c *gin.Context) {
 	})
 }
 
+// GetTshirts godoc
+// @Summary 获取T恤列表
+// @Description 获取所有可用的T恤产品列表
+// @Tags products
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "{“message”: “T-shirts endpoint”}"
+// @Router /tshirts [get]
 func getTshirts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "T-shirts endpoint",

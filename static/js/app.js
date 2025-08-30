@@ -2,6 +2,7 @@ class AITshirtShop {
     constructor() {
         this.baseURL = '/api/v1';
         this.token = localStorage.getItem('authToken');
+        this.refreshToken = localStorage.getItem('refreshToken');
         this.currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         
         this.init();
@@ -100,12 +101,18 @@ class AITshirtShop {
             title.textContent = '登录';
             emailGroup.style.display = 'none';
             switchText.innerHTML = '没有账号？ <a href="#" id="switchToRegister">立即注册</a>';
+            
+            // 重新绑定切换到注册的链接
+            document.getElementById('switchToRegister')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showAuthModal('register');
+            });
         } else {
             title.textContent = '注册';
             emailGroup.style.display = 'block';
             switchText.innerHTML = '已有账号？ <a href="#" id="switchToLogin">立即登录</a>';
             
-            // 重新绑定切换链接
+            // 重新绑定切换到登录的链接
             document.getElementById('switchToLogin')?.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showAuthModal('login');
@@ -137,9 +144,11 @@ class AITshirtShop {
             
             if (response.token) {
                 this.token = response.token;
+                this.refreshToken = response.refresh_token;
                 this.currentUser = { username: response.user?.username || username };
                 
                 localStorage.setItem('authToken', this.token);
+                localStorage.setItem('refreshToken', this.refreshToken);
                 localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
                 
                 this.hideAuthModal();
@@ -159,8 +168,10 @@ class AITshirtShop {
 
     logout() {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('currentUser');
         this.token = null;
+        this.refreshToken = null;
         this.currentUser = null;
         this.checkAuthState();
         this.showNotification('已退出登录', 'success');
@@ -311,6 +322,30 @@ class AITshirtShop {
         }
         
         const response = await fetch(url, options);
+        
+        // If token expired and we have a refresh token, try to refresh
+        if (response.status === 401 && auth && this.refreshToken) {
+            const refreshed = await this.refreshAuthToken();
+            if (refreshed) {
+                // Retry the original request with new token
+                options.headers['Authorization'] = `Bearer ${this.token}`;
+                const retryResponse = await fetch(url, options);
+                const retryResult = await retryResponse.json();
+                
+                if (!retryResponse.ok) {
+                    throw new Error(retryResult.error || retryResult.message || '请求失败');
+                }
+                
+                return retryResult;
+            } else {
+                // Refresh failed, redirect to login
+                this.logout();
+                this.showNotification('登录已过期，请重新登录', 'error');
+                this.showAuthModal('login');
+                throw new Error('登录已过期');
+            }
+        }
+        
         const result = await response.json();
         
         if (!response.ok) {
@@ -318,6 +353,39 @@ class AITshirtShop {
         }
         
         return result;
+    }
+
+    async refreshAuthToken() {
+        if (!this.refreshToken) {
+            return false;
+        }
+
+        try {
+            const response = await fetch(`${this.baseURL}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    refresh_token: this.refreshToken
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                this.token = result.token;
+                this.refreshToken = result.refresh_token;
+                
+                localStorage.setItem('authToken', this.token);
+                localStorage.setItem('refreshToken', this.refreshToken);
+                
+                return true;
+            }
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+        }
+
+        return false;
     }
 
     showLoading(show) {

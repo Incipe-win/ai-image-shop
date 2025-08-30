@@ -1,0 +1,321 @@
+basePath: /api/v1
+definitions:
+  handler.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handler.LoginResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      refresh_token:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  handler.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handler.RefreshTokenResponse:
+    properties:
+      message:
+        type: string
+      refresh_token:
+        type: string
+      token:
+        type: string
+    type: object
+  handler.RegisterRequest:
+    properties:
+      email:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  handler.RegisterResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      refresh_token:
+        type: string
+      token:
+        type: string
+      username:
+        type: string
+    type: object
+  service.AIGenerateRequest:
+    properties:
+      prompt:
+        type: string
+    required:
+    - prompt
+    type: object
+  service.AIGenerateResponse:
+    properties:
+      image_url:
+        type: string
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: AI驱动的T恤设计商店API服务，提供用户认证、AI设计生成等功能
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: AI T-Shirt Shop API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录获取访问令牌
+      parameters:
+      - description: 登录请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/handler.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 用户名或密码错误
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户登录
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: 刷新令牌请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 令牌刷新成功
+          schema:
+            $ref: '#/definitions/handler.RefreshTokenResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 非法刷新令牌
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 刷新令牌
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户账户
+      parameters:
+      - description: 注册请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功
+          schema:
+            $ref: '#/definitions/handler.RegisterResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: 用户名或邮箱已存在
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户注册
+      tags:
+      - auth
+  /designs/generate:
+    post:
+      consumes:
+      - application/json
+      description: 使用AI根据提示词生成T恤设计图案
+      parameters:
+      - description: AI生成请求参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.AIGenerateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 设计生成成功
+          schema:
+            $ref: '#/definitions/service.AIGenerateResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 生成AI设计
+      tags:
+      - designs
+  /designs/my-designs:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户的所有设计作品
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户设计列表
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 未授权
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 内部服务器错误
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取用户设计
+      tags:
+      - designs
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: 检查API服务状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{“status”: “ok”, “time”: “2023-01-01T00:00:00Z”}'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 健康检查
+      tags:
+      - health
+  /tshirts:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有可用的T恤产品列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{“message”: “T-shirts endpoint”}'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 获取T恤列表
+      tags:
+      - products
+securityDefinitions:
+  BearerAuth:
+    description: Bearer token for API authentication
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

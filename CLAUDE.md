@@ -47,6 +47,24 @@ go mod tidy
 go mod download
 ```
 
+### API Documentation
+```bash
+# Generate API documentation
+make docs
+
+# Generate and view documentation info
+make gen-docs
+
+# Open documentation in browser (after starting server)
+make serve-docs
+
+# Watch for changes and auto-regenerate docs (Linux)
+./scripts/docs-watch.sh
+
+# Watch for changes and auto-regenerate docs (macOS)
+./scripts/docs-watch-mac.sh
+```
+
 ## Architecture
 
 ### Project Structure
@@ -79,6 +97,27 @@ The project follows a layered architecture:
 - PostgreSQL database integration
 - JWT authentication
 - AI service integration for t-shirt design generation
+- Swagger/OpenAPI documentation generation with swaggo
+
+### API Documentation
+The project includes comprehensive RESTful API documentation using Swagger/OpenAPI 2.0:
+
+- **Documentation URL**: `http://localhost:8080/swagger/index.html` (when server is running)
+- **JSON Format**: `http://localhost:8080/swagger/doc.json`
+- **YAML Format**: Available in `docs/swagger.yaml`
+
+#### Available API Endpoints:
+- **Authentication**: `/api/v1/auth/*` - User registration, login, token refresh
+- **Designs**: `/api/v1/designs/*` - AI design generation and user design management
+- **Health**: `/api/v1/health` - Service health check
+- **Products**: `/api/v1/tshirts` - T-shirt product listing
+
+#### Documentation Features:
+- Interactive API testing through Swagger UI
+- Complete request/response schemas
+- Authentication support (Bearer token)
+- Automatic regeneration when code changes
+- Multi-language support (Chinese/English descriptions)
 
 ## Development Notes
 
@@ -86,3 +125,5 @@ The project follows a layered architecture:
 - Configuration includes placeholder values that should be updated for actual deployment
 - Database schema and migrations are not yet implemented
 - No existing tests or build automation detected
+- API documentation is automatically generated from code annotations
+- Documentation updates automatically when Go source files change (using watch scripts)

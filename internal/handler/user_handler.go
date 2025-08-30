@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"strings"
 	"time"
@@ -9,8 +11,8 @@ import (
 	"github.com/Incipe-win/ai-tshirt-shop/internal/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -21,11 +23,12 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Token     string `json:"token"`
-	Message   string `json:"message"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	Message      string `json:"message"`
 }
 
 type LoginRequest struct {
@@ -34,19 +37,80 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	ID       uint   `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Token    string `json:"token"`
-	Message  string `json:"message"`
+	ID           uint   `json:"id"`
+	Username     string `json:"username"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	Message      string `json:"message"`
 }
 
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type RefreshTokenResponse struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	Message      string `json:"message"`
+}
+
+// generateRefreshToken generates a secure random refresh token
+func generateRefreshToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+// generateTokens generates both access and refresh tokens
+func generateTokens(userID uint, username string) (string, string, error) {
+	jwtSecret := viper.GetString("jwt.secret")
+	if jwtSecret == "" {
+		return "", "", jwt.ErrInvalidKey
+	}
+
+	// Generate access token (1 hour expiry)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID":   userID,
+		"username": username,
+		"exp":      time.Now().Add(time.Hour).Unix(),
+		"iat":      time.Now().Unix(),
+	})
+
+	accessToken, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", "", err
+	}
+
+	// Generate refresh token
+	refreshToken, err := generateRefreshToken()
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+// Register godoc
+// @Summary 用户注册
+// @Description 创建新用户账户
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "注册请求参数"
+// @Success 201 {object} RegisterResponse "注册成功"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 409 {object} map[string]interface{} "用户名或邮箱已存在"
+// @Failure 500 {object} map[string]interface{} "内部服务器错误"
+// @Router /auth/register [post]
 func Register(c *gin.Context) {
 	var req RegisterRequest
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request data",
+			"error":   "Invalid request data",
 			"details": err.Error(),
 		})
 		return
@@ -57,14 +121,14 @@ func Register(c *gin.Context) {
 
 	if len(req.Username) < 3 || len(req.Username) > 50 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Username must be between 3 and 50 characters",
+			"error": "用户名长度必须在3到50个字符之间",
 		})
 		return
 	}
 
 	if len(req.Password) < 6 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Password must be at least 6 characters",
+			"error": "密码长度至少需要6个字符",
 		})
 		return
 	}
@@ -76,19 +140,19 @@ func Register(c *gin.Context) {
 	if result.Error == nil {
 		if existingUser.Username == req.Username {
 			c.JSON(http.StatusConflict, gin.H{
-				"error": "Username already exists",
+				"error": "用户名已存在",
 			})
 			return
 		}
 		if existingUser.Email == req.Email {
 			c.JSON(http.StatusConflict, gin.H{
-				"error": "Email already exists",
+				"error": "邮箱已被注册",
 			})
 			return
 		}
 	} else if result.Error != gorm.ErrRecordNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Database error",
+			"error": "数据库错误",
 		})
 		return
 	}
@@ -96,7 +160,7 @@ func Register(c *gin.Context) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to hash password",
+			"error": "密码加密失败",
 		})
 		return
 	}
@@ -110,51 +174,59 @@ func Register(c *gin.Context) {
 	result = db.Create(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create user",
+			"error": "创建用户失败",
 		})
 		return
 	}
 
-	// Generate JWT token for auto-login after registration
-	jwtSecret := viper.GetString("jwt.secret")
-	if jwtSecret == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "JWT secret not configured",
-		})
-		return
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": user.ID,
-		"username": user.Username,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(jwtSecret))
+	// Generate JWT and refresh tokens for auto-login after registration
+	accessToken, refreshToken, err := generateTokens(user.ID, user.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate token",
+			"error": "生成token失败",
+		})
+		return
+	}
+
+	// Save refresh token to database
+	user.RefreshToken = refreshToken
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "保存refresh token失败",
 		})
 		return
 	}
 
 	response := RegisterResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Token:    tokenString,
-		Message:  "User registered successfully",
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+		Message:      "User registered successfully",
 	}
 
 	c.JSON(http.StatusCreated, response)
 }
 
+// Login godoc
+// @Summary 用户登录
+// @Description 用户登录获取访问令牌
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "登录请求参数"
+// @Success 200 {object} LoginResponse "登录成功"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 401 {object} map[string]interface{} "用户名或密码错误"
+// @Failure 500 {object} map[string]interface{} "内部服务器错误"
+// @Router /auth/login [post]
 func Login(c *gin.Context) {
 	var req LoginRequest
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request data",
+			"error":   "Invalid request data",
 			"details": err.Error(),
 		})
 		return
@@ -169,7 +241,7 @@ func Login(c *gin.Context) {
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid username or password",
+				"error": "用户名不存在",
 			})
 			return
 		}
@@ -182,39 +254,103 @@ func Login(c *gin.Context) {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid username or password",
+			"error": "密码错误",
 		})
 		return
 	}
 
-	jwtSecret := viper.GetString("jwt.secret")
-	if jwtSecret == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "JWT secret not configured",
-		})
-		return
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userID": user.ID,
-		"username": user.Username,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
-
-	tokenString, err := token.SignedString([]byte(jwtSecret))
+	// Generate JWT and refresh tokens
+	accessToken, refreshToken, err := generateTokens(user.ID, user.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate token",
+			"error": "生成token失败",
+		})
+		return
+	}
+
+	// Save refresh token to database
+	user.RefreshToken = refreshToken
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "保存refresh token失败",
 		})
 		return
 	}
 
 	response := LoginResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Email:    user.Email,
-		Token:    tokenString,
-		Message:  "Login successful",
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+		Message:      "Login successful",
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// RefreshToken godoc
+// @Summary 刷新令牌
+// @Description 使用刷新令牌获取新的访问令牌
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshTokenRequest true "刷新令牌请求参数"
+// @Success 200 {object} RefreshTokenResponse "令牌刷新成功"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 401 {object} map[string]interface{} "非法刷新令牌"
+// @Failure 500 {object} map[string]interface{} "内部服务器错误"
+// @Router /auth/refresh [post]
+func RefreshToken(c *gin.Context) {
+	var req RefreshTokenRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request data",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	db := repository.GetDB()
+
+	var user model.User
+	result := db.Where("refresh_token = ?", req.RefreshToken).First(&user)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid refresh token",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Database error",
+		})
+		return
+	}
+
+	// Generate new tokens
+	accessToken, refreshToken, err := generateTokens(user.ID, user.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "生成token失败",
+		})
+		return
+	}
+
+	// Update refresh token in database
+	user.RefreshToken = refreshToken
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "保存refresh token失败",
+		})
+		return
+	}
+
+	response := RefreshTokenResponse{
+		Token:        accessToken,
+		RefreshToken: refreshToken,
+		Message:      "Tokens refreshed successfully",
 	}
 
 	c.JSON(http.StatusOK, response)

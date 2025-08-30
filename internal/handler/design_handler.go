@@ -32,6 +32,19 @@ func InitDesignRepository(db *gorm.DB) {
 	designRepository = repository.NewDesignRepository(db)
 }
 
+// GenerateDesign godoc
+// @Summary 生成AI设计
+// @Description 使用AI根据提示词生成T恤设计图案
+// @Tags designs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body service.AIGenerateRequest true "AI生成请求参数"
+// @Success 200 {object} service.AIGenerateResponse "设计生成成功"
+// @Failure 400 {object} map[string]interface{} "请求参数错误"
+// @Failure 401 {object} map[string]interface{} "未授权"
+// @Failure 500 {object} map[string]interface{} "内部服务器错误"
+// @Router /designs/generate [post]
 func GenerateDesign(c *gin.Context) {
 	userIDInterface, exists := c.Get("userID")
 	if !exists {
@@ -100,12 +113,12 @@ func GenerateDesign(c *gin.Context) {
 		ImageURL: imageURL,
 		Style:    "", // 可以根据需要从请求中获取风格信息
 	}
-	
+
 	if err := designRepository.Create(design); err != nil {
 		logger.Error("Failed to save design to database", err)
 		// 不返回错误，因为图片生成已经成功
 	}
-	
+
 	logger.Info("Design generated successfully", "userID", userID, "imageURL", imageURL, "designID", design.ID)
 
 	c.JSON(http.StatusOK, service.AIGenerateResponse{
@@ -114,6 +127,17 @@ func GenerateDesign(c *gin.Context) {
 	})
 }
 
+// GetUserDesigns godoc
+// @Summary 获取用户设计
+// @Description 获取当前用户的所有设计作品
+// @Tags designs
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "用户设计列表"
+// @Failure 401 {object} map[string]interface{} "未授权"
+// @Failure 500 {object} map[string]interface{} "内部服务器错误"
+// @Router /designs/my-designs [get]
 func GetUserDesigns(c *gin.Context) {
 	userIDInterface, exists := c.Get("userID")
 	if !exists {
@@ -138,7 +162,7 @@ func GetUserDesigns(c *gin.Context) {
 	if err != nil {
 		logger.Error("Failed to fetch designs from database", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch designs",
+			"error":   "Failed to fetch designs",
 			"details": err.Error(),
 		})
 		return
