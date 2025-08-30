@@ -353,6 +353,11 @@ class AICreativeStudio {
                     </div>
                     <p class="design-prompt">${design.prompt || '创意作品'}</p>
                     <p class="creation-time">${this.formatDate(design.created_at) || '刚刚创建'}</p>
+                    <div class="gallery-actions">
+                        <button class="btn btn-success btn-sm" onclick="app.showPublishToShopModal(${design.id})">
+                            <i class="fas fa-store"></i> 发布到商店
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -391,9 +396,22 @@ class AICreativeStudio {
         document.getElementById('productName').focus();
     }
 
+    showPublishToShopModal(designId) {
+        if (!this.token) {
+            this.showNotification('请先登录', 'error');
+            this.showAuthModal('login');
+            return;
+        }
+        
+        this.currentPublishDesignId = designId;
+        document.getElementById('publishModal').style.display = 'flex';
+        document.getElementById('productName').focus();
+    }
+
     hidePublishModal() {
         document.getElementById('publishModal').style.display = 'none';
         document.getElementById('publishForm').reset();
+        this.currentPublishDesignId = null;
     }
 
     async showProductDetails(productId) {
@@ -440,7 +458,9 @@ class AICreativeStudio {
     async handlePublishToShop(e) {
         e.preventDefault();
         
-        if (!this.currentDesign) {
+        const designId = this.currentPublishDesignId || (this.currentDesign && this.currentDesign.id);
+        
+        if (!designId) {
             this.showNotification('没有可发布的设计作品', 'error');
             return;
         }
@@ -461,7 +481,7 @@ class AICreativeStudio {
 
         try {
             await this.apiRequest('/designs/publish', 'POST', {
-                design_id: this.currentDesign.id,
+                design_id: parseInt(designId),
                 product_name: productName,
                 description: description,
                 price: price
@@ -631,25 +651,24 @@ class AICreativeStudio {
         }
 
         productsGrid.innerHTML = products.map(product => {
-            const imageContent = product.image_url ? 
-                `<img src="/static${product.image_url}" alt="${product.name}" onload="this.style.display='block'" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                 <i class="fas fa-palette" style="display: none;"></i>` : 
-                '<i class="fas fa-palette"></i>';
-            
             return `
-                <div class="product-card" data-product-id="${product.id}">
-                    <div class="product-image" onclick="app.showProductDetails(${product.id})" style="cursor: pointer;">
-                        ${imageContent}
+                <div class="gallery-item product-item" data-product-id="${product.id}">
+                    <div class="product-image-container" onclick="app.showProductDetails(${product.id})" style="cursor: pointer;">
+                        ${product.image_url ? 
+                            `<img src="/static${product.image_url}" alt="${product.name}">` : 
+                            `<div class="placeholder-image"><i class="fas fa-palette"></i></div>`
+                        }
                     </div>
-                    <div class="product-info">
-                        <div class="product-summary">
-                            <div class="product-main-info">
-                                <h3 class="product-name">${product.name}</h3>
-                                <span class="product-creator">by ${product.creator_name || '匿名'}</span>
-                                <span class="product-category-badge">${this.getCategoryName(product.category) || '通用'}</span>
-                            </div>
-                            <button class="cart-icon-btn" onclick="app.addToCartDirectly(${product.id})" title="添加到购物车">
-                                <i class="fas fa-shopping-cart"></i>
+                    <div class="gallery-item-content">
+                        <div class="gallery-item-meta">
+                            <span class="category-tag">${this.getCategoryName(product.category) || '通用'}</span>
+                            <span class="price-tag">¥${product.base_price || '0.00'}</span>
+                        </div>
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-creator">by ${product.creator_name || '匿名'}</p>
+                        <div class="product-actions">
+                            <button class="btn btn-primary btn-sm" onclick="app.addToCartDirectly(${product.id})">
+                                <i class="fas fa-shopping-cart"></i> 加入购物车
                             </button>
                         </div>
                     </div>
